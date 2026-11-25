@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba Supabase - Checktiva</title>
+<style>
+body{margin:0;background:#000;color:#fff;font-family:Arial,sans-serif;padding:20px}
+.card{background:#111;border:1px solid #333;border-radius:16px;padding:16px;margin-bottom:14px}
+button{width:100%;padding:14px;border:none;border-radius:999px;font-weight:900;font-size:15px;margin-top:10px;cursor:pointer}
+.btn-verde{background:#00C853;color:#fff}
+.btn-oro{background:#FFD700;color:#000}
+pre{white-space:pre-wrap;word-break:break-word;font-size:12px;color:#ddd;background:#000;border:1px solid #222;border-radius:10px;padding:10px;max-height:300px;overflow:auto}
+.ok{color:#00C853;font-weight:900}.err{color:#FF5252;font-weight:900}
+</style></head>
+<body>
+<h2 style="margin:0">🔍 Prueba Supabase - Checktiva</h2>
+<p style="color:#aaa;font-size:13px">Esta página solo prueba si el celular puede escribir y leer en tu base. No toca tu página principal.</p>
+<div class="card"><b>Proyecto:</b> https://ypjwzddddlinnrmtlgki.supabase.co<br><b>Tabla:</b> orders / tickets<br><b>Estado:</b> <span id="estado">sin probar</span></div>
+<div class="card">
+<button class="btn-verde" onclick="probarEscribir()">1️⃣ Probar ESCRIBIR una orden de prueba</button>
+<button class="btn-oro" onclick="probarLeer()">2️⃣ Probar LEER órdenes</button>
+<div id="salida"><pre>Pulsa el botón 1, espera, y aquí te dirá si escribió o qué error dio.
+Después pulsa el botón 2.</pre></div>
+</div>
+<div class="card" style="font-size:12px;color:#aaa;line-height:1.6">
+<b>Qué significa el resultado:</b><br>
+• Si dice <span class="ok">✅ ESCRITURA OK</span> y <span class="ok">✅ LECTURA OK</span> → Supabase está bien, el problema es la página vieja en caché. Hay que abrir el link con ?v=3<br>
+• Si dice <span class="err">❌ 401 / 42501 / RLS</span> → La puerta está cerrada. Hay que correr el SQL de políticas.<br>
+• Si dice <span class="err">❌ column / PGRST204</span> → La tabla no tiene la columna id o data. Hay que recrear la tabla.
+<br><br>Mándame pantallazo de lo que salga aquí.
+</div>
+<script>
+var URL='https://ypjwzddddlinnrmtlgki.supabase.co';
+var KEY='sb_publishable_4zZ67hdGWK_HspMthhtPKg_ZuwbSvCD';
+var H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=representation'};
+function mostrar(html){ document.getElementById('salida').innerHTML='<pre>'+html+'</pre>'; }
+function estado(txt,ok){ var e=document.getElementById('estado'); e.textContent=txt; e.className=ok?'ok':'err'; }
+async function probarEscribir(){
+  estado('escribiendo...',true);
+  var id='PRUEBA-'+Date.now();
+  var fila={id:id, status:'pendiente', buyer_name:'Prueba Checktiva', buyer_email:'prueba@checktiva.com', buyer_phone:'3000000000', event_title:'Evento de Prueba', total:1000, data:{id:id,status:'pendiente',buyerName:'Prueba Checktiva',eventTitle:'Evento de Prueba',total:1000}, updated_at:new Date().toISOString()};
+  try{
+    var r=await fetch(URL+'/rest/v1/orders?on_conflict=id',{method:'POST',headers:H,body:JSON.stringify(fila)});
+    var txt=await r.text();
+    if(r.ok){ estado('✅ ESCRITURA OK',true); mostrar('✅ ESCRITURA OK - Código '+r.status+'\nID de prueba: '+id+'\n\nRespuesta:\n'+txt.slice(0,1000)+'\n\nAhora dale al botón 2 para ver si la puedes leer.'); window._ultimaPrueba=id; return; }
+    // Reintento solo con id + data
+    mostrar('❌ Primer intento falló - Código '+r.status+'\n'+txt.slice(0,1200)+'\n\nReintentando solo con id + data...');
+    var r2=await fetch(URL+'/rest/v1/orders?on_conflict=id',{method:'POST',headers:H,body:JSON.stringify({id:id,data:fila.data})});
+    var txt2=await r2.text();
+    if(r2.ok){ estado('✅ ESCRITURA OK (solo id+data)',true); mostrar('✅ ESCRITURA OK con id+data - Código '+r2.status+'\nID: '+id+'\n\nEsto quiere decir que tu tabla NO tiene las columnas buyer_name, etc. Hay que agregarlas.\n\nRespuesta:\n'+txt2.slice(0,800)); window._ultimaPrueba=id; return; }
+    estado('❌ ESCRITURA FALLÓ',false);
+    mostrar('❌ ESCRITURA FALLÓ - Código '+r2.status+'\n\nPrimer error:\n'+txt.slice(0,1000)+'\n\nSegundo error (id+data):\n'+txt2.slice(0,1000)+'\n\nMándame pantallazo de esto.');
+  }catch(e){ estado('❌ ERROR DE INTERNET',false); mostrar('❌ ERROR: '+e.message+'\n\nRevisa que tengas internet y vuelve a intentar.'); }
+}
+async function probarLeer(){
+  estado('leyendo...',true);
+  try{
+    var r=await fetch(URL+'/rest/v1/orders?select=*&order=created_at.desc&limit=5',{headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});
+    var txt=await r.text();
+    if(r.ok){ estado('✅ LECTURA OK',true); mostrar('✅ LECTURA OK - Código '+r.status+'\n\nÚltimas 5 órdenes en Supabase:\n'+txt.slice(0,2000)); }
+    else{ estado('❌ LECTURA FALLÓ',false); mostrar('❌ LECTURA FALLÓ - Código '+r.status+'\n'+txt.slice(0,1500)); }
+  }catch(e){ estado('❌ ERROR',false); mostrar('❌ ERROR: '+e.message); }
+}
+</script>
+</body></html>
