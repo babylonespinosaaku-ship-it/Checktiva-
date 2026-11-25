@@ -3910,6 +3910,7 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
     if(c.indexOf('diamante')!==-1) return 'diamante';
     if(c.indexOf('palco')!==-1) return 'palcos';
     if(c.indexOf('platea premium')!==-1) return 'platea_premium';
+    if(c.indexOf('platea')!==-1) return 'platea';
     if(c.indexOf('platino')!==-1) return 'platino';
     if(c.indexOf('oro')!==-1) return 'oro';
     if(c.indexOf('plata')!==-1) return 'plata';
@@ -3925,8 +3926,8 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
     if(k==='oro') return {key:'oro', qrColor:'B8860B', qrBg:'FFFBEA', label:'🥇 ORO • PREMIUM', badgeBg:'#B8860B', badgeText:'#fff', frame:'linear-gradient(135deg,#FFD700 0%,#B8860B 55%,#FFE55C 100%)', emoji:'🥇'};
     if(k==='plata') return {key:'plata', qrColor:'5A6C7D', qrBg:'F2F4F7', label:'🥈 PLATA • PREMIUM', badgeBg:'#5A6C7D', badgeText:'#fff', frame:'linear-gradient(135deg,#E5E4E2 0%,#5A6C7D 55%,#C0C0C0 100%)', emoji:'🥈'};
     if(k==='platino') return {key:'platino', qrColor:'0F766E', qrBg:'E0F2F1', label:'💠 PLATINO • PREMIUM', badgeBg:'#0F766E', badgeText:'#fff', frame:'linear-gradient(135deg,#A7F3D0 0%,#0F766E 55%,#00D4FF 100%)', emoji:'💠'};
-    if(k==='platea_premium') return {key:'platea_premium', qrColor:'0E7CFF', qrBg:'E6F0FF', label:'🎟️ PLATEA PREMIUM • PREMIUM', badgeBg:'#0E7CFF', badgeText:'#fff', frame:'linear-gradient(135deg,#FFD700 0%,#0E7CFF 55%,#00E5FF 100%)', emoji:'🎟️'};
-    return {key:'general', qrColor:'000000', qrBg:'FFFFFF', label:'🎫 GENERAL', badgeBg:'#8B6914', badgeText:'#000', frame:'#8B6914', emoji:'🎫'};
+    if(k==='platea_premium') return {key:'platea_premium', qrColor:'0E7CFF', qrBg:'E6F0FF', label:'🎟️ PLATEA PREMIUM • PREMIUM', badgeBg:'#0E7CFF', badgeText:'#fff', frame:'linear-gradient(135deg,#FFD700 0%,#0E7CFF 55%,#00E5FF 100%)', emoji:'🎟️'}; if(k==='platea') return {key:'platea', qrColor:'0E7CFF', qrBg:'E6F0FF', label:'🎟️ PLATEA • PREMIUM', badgeBg:'#0E7CFF', badgeText:'#fff', frame:'linear-gradient(135deg,#FFD700 0%,#0E7CFF 55%,#00E5FF 100%)', emoji:'🎟️'};
+    return {key:'general', qrColor:'000000', qrBg:'FFFFFF', label:'🎫 GENERAL', badgeBg:'#000000', badgeText:'#FFFFFF', frame:'#FFFFFF', emoji:'🎫'};
   }
   window.checktivaQRStyle = _styleFor;
   function _buildUniquePayload(ticket, order){
@@ -4113,6 +4114,7 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
     if(c.indexOf('diamante')!==-1) return 'diamante';
     if(c.indexOf('palco')!==-1) return 'palcos';
     if(c.indexOf('platea premium')!==-1) return 'platea_premium';
+    if(c.indexOf('platea')!==-1) return 'platea';
     if(c.indexOf('platino')!==-1) return 'platino';
     if(c.indexOf('oro')!==-1) return 'oro';
     if(c.indexOf('plata')!==-1) return 'plata';
@@ -4128,8 +4130,8 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
     if(k==='oro') return {key:'oro', dark:'#B8860B', light:'#FFFBEA', label:'🥇 ORO • PREMIUM', badgeBg:'#B8860B'};
     if(k==='plata') return {key:'plata', dark:'#5A6C7D', light:'#F2F4F7', label:'🥈 PLATA • PREMIUM', badgeBg:'#5A6C7D'};
     if(k==='platino') return {key:'platino', dark:'#0F766E', light:'#E0F2F1', label:'💠 PLATINO • PREMIUM', badgeBg:'#0F766E'};
-    if(k==='platea_premium') return {key:'platea_premium', dark:'#0E7CFF', light:'#E6F0FF', label:'🎟️ PLATEA PREMIUM • PREMIUM', badgeBg:'#0E7CFF'};
-    return {key:'general', dark:'#000000', light:'#FFFFFF', label:'🎫 GENERAL', badgeBg:'#8B6914'};
+    if(k==='platea_premium') return {key:'platea_premium', dark:'#0E7CFF', light:'#E6F0FF', label:'🎟️ PLATEA PREMIUM • PREMIUM', badgeBg:'#0E7CFF'}; if(k==='platea') return {key:'platea', dark:'#0E7CFF', light:'#E6F0FF', label:'🎟️ PLATEA • PREMIUM', badgeBg:'#0E7CFF'};
+    return {key:'general', dark:'#000000', light:'#FFFFFF', label:'🎫 GENERAL', badgeBg:'#000000'};
   }
   function _buildPayload(ticket, order){
     var existing=ticket.qrData||'';
@@ -15077,7 +15079,7 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
     try{
       var txt = String(document.body ? document.body.innerText || '' : '');
       var enMisTickets = txt.indexOf('Mis Tickets') !== -1 || txt.indexOf('Mis Boletas') !== -1 || txt.indexOf('Mis tickets') !== -1;
-      if(!enMisTickets) return;
+      return; // FIX CheckTiva Mis Tickets: no duplicar tarjeta en vivo. Mis Tickets ya muestra los tickets. La 2a ventanilla es la Boleta Oficial.
       var ordenes = [];
       try{ ordenes = JSON.parse(localStorage.getItem('checking_orders')||'[]'); }catch(e){}
       var validados = [];
@@ -15353,5 +15355,82 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
 })();
 </script>
 
+
+<!-- FIX MIS TICKETS TAL CUAL - Solo recolorea codigos segun categoria, no toca nada mas -->
+<script id="checktiva-fix-mis-tickets-tal-cual">
+(function(){
+  function sinAcento(s){ s=String(s||'').toLowerCase(); try{ s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }catch(e){} return s; }
+  function colorPara(cat){
+    var n=sinAcento(cat||'');
+    if(n.indexOf('alfombra')!==-1) return {premium:true, bg:'#C8102E', text:'#FFFFFF'};
+    if(n.indexOf('diamante')!==-1) return {premium:true, bg:'#0A4D8C', text:'#FFFFFF'};
+    if(n.indexOf('palco')!==-1) return {premium:true, bg:'#6A0DAD', text:'#FFFFFF'};
+    if(n.indexOf('platea')!==-1) return {premium:true, bg:'#0E7CFF', text:'#FFFFFF'};
+    if(n.indexOf('oro')!==-1) return {premium:true, bg:'#B8860B', text:'#FFFFFF'};
+    if(n.indexOf('platino')!==-1) return {premium:true, bg:'#0F766E', text:'#FFFFFF'};
+    if(n.indexOf('plata')!==-1) return {premium:true, bg:'#5A6C7D', text:'#FFFFFF'};
+    if(n.indexOf('vip')!==-1) return {premium:true, bg:'#FF8C00', text:'#FFFFFF'};
+    return {premium:false, bg:'#FFFFFF', text:'#000000'};
+  }
+  function categoriaDeTicket(ticketId){
+    try{
+      var orders=JSON.parse(localStorage.getItem('checking_orders')||'[]');
+      for(var i=0;i<orders.length;i++){ var o=orders[i]||{}; var ts=o.tickets||[]; for(var j=0;j<ts.length;j++){ if(ts[j] && ts[j].id===ticketId){ return ts[j].ticketCategory||ts[j].ticketCategoryName||ts[j].category||ts[j].localidad||'General'; } } }
+      var cts=JSON.parse(localStorage.getItem('checktivas')||'[]');
+      for(var k=0;k<cts.length;k++){ if(cts[k] && cts[k].id===ticketId){ return cts[k].ticketCategory||cts[k].ticketCategoryName||cts[k].category||cts[k].localidad||'General'; } }
+    }catch(e){}
+    return 'General';
+  }
+  function recolorear(){
+    try{
+      // Quitar tarjeta duplicada en vivo si aparece
+      var dup=document.getElementById('checktiva-tickets-en-vivo');
+      if(dup){ try{ dup.remove(); }catch(e){} }
+      // Ocultar indicador de sincronizacion cuando Mis Tickets esta abierto, para que no tape la ventanilla
+      var txt=String(document.body?document.body.innerText||'':'');
+      var enMisTickets = txt.indexOf('Mis tickets')!==-1 || txt.indexOf('Mis Tickets')!==-1;
+      var ind=document.getElementById('checktiva-sync-siempre-indicador');
+      if(ind){ ind.style.display = enMisTickets ? 'none' : ''; }
+      // Recolorear pills CHK- en lista Mis Tickets y en Boleta Oficial
+      var spans=document.querySelectorAll('span');
+      for(var i=0;i<spans.length;i++){
+        var sp=spans[i];
+        var t=String(sp.textContent||'').trim();
+        if(t.indexOf('CHK-')!==0) continue;
+        // Solo pills de tickets (dentro de Mis Tickets o Boleta), no otros textos largos
+        var ticketId=t.split(' ')[0].split('•')[0].trim();
+        var cat=categoriaDeTicket(ticketId);
+        var col=colorPara(cat);
+        // Si ya esta con el color correcto, no tocar
+        if(sp.dataset && sp.dataset.checktivaColorFix===cat) continue;
+        if(sp.dataset) sp.dataset.checktivaColorFix=cat;
+        sp.style.background = col.bg;
+        sp.style.color = col.text;
+        sp.style.border = col.premium ? 'none' : '1px solid #000000';
+        sp.style.fontWeight='800';
+      }
+      // Borde de la Boleta Oficial segun categoria
+      var qrImg=document.getElementById('checktiva-qr-image');
+      if(qrImg && qrImg.parentNode){
+        var idEl=document.getElementById('checktiva-qr-id');
+        var catB='General';
+        if(idEl){ var txtId=String(idEl.textContent||''); var m=txtId.match(/CHK-[A-Z0-9-]+/); if(m) catB=categoriaDeTicket(m[0]); }
+        var colB=colorPara(catB);
+        var box=qrImg.parentNode;
+        // Solo si es el contenedor blanco del QR
+        if(box && box.style){
+          if(colB.premium){ box.style.border='3px solid '+colB.bg; box.style.boxShadow='0 10px 30px rgba(0,0,0,0.4)'; }
+          else { box.style.border='1px solid #9CA3AF'; box.style.boxShadow='0 10px 30px rgba(0,0,0,0.4)'; }
+        }
+      }
+    }catch(e){}
+  }
+  setInterval(recolorear, 600);
+  try{ var obs=new MutationObserver(function(){ recolorear(); }); obs.observe(document.body, {childList:true, subtree:true}); }catch(e){}
+  document.addEventListener('click', function(){ setTimeout(recolorear, 150); setTimeout(recolorear, 600); }, true);
+  console.log('✅ FIX Mis Tickets tal cual activo: premium con color, Gramilla/General B/N, sin tarjeta duplicada');
+})();
+</script>
 </body>
+
 </html>
