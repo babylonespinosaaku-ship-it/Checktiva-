@@ -16550,6 +16550,73 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
 })();
 </script>
 
+
+<!-- FIX: Mis Tickets abre su ventanilla, no la INFO IMPORTANTE -->
+<style id="checktiva-fix-mis-tickets-info-css">
+  body.checktiva-mis-tickets-abierto #checktiva-casillas-finales,
+  body.checktiva-mis-tickets-abierto #checktiva-info-legal-inicio{ display:none !important; }
+  body.checktiva-mis-tickets-abierto div[class*="z-[65]"]{ z-index:999999 !important; display:flex !important; visibility:visible !important; opacity:1 !important; pointer-events:auto !important; }
+  body.checktiva-mis-tickets-abierto div[class*="z-[65]"] > div:last-child{ display:flex !important; visibility:visible !important; opacity:1 !important; }
+</style>
+<script id="checktiva-fix-mis-tickets-info">
+(function(){
+  if(window.__checktivaMisTicketsInfo) return;
+  window.__checktivaMisTicketsInfo = true;
+  console.log('FIX Mis Tickets: ventanilla al frente, INFO oculta cuando esta abierto');
+  function _drawerMisTickets(){
+    try{
+      var list=document.querySelectorAll('div[class*="z-[65]"]');
+      for(var i=0;i<list.length;i++){
+        var d=list[i];
+        var txt=String(d.textContent||'');
+        if(txt.indexOf('Mis tickets')!==-1 && txt.indexOf('órdenes')!==-1) return d;
+      }
+    }catch(e){}
+    return null;
+  }
+  function _aplicar(){
+    try{
+      var drawer=_drawerMisTickets();
+      var abierto=!!drawer;
+      document.body.classList.toggle('checktiva-mis-tickets-abierto', abierto);
+      if(abierto){
+        var cas=document.getElementById('checktiva-casillas-finales');
+        if(cas) cas.style.display='none';
+        var info=document.getElementById('checktiva-info-legal-inicio');
+        if(info) info.style.display='none';
+        drawer.style.zIndex='999999';
+        drawer.style.display='flex';
+        drawer.style.visibility='visible';
+        drawer.style.opacity='1';
+        drawer.style.pointerEvents='auto';
+      } else {
+        var cas2=document.getElementById('checktiva-casillas-finales');
+        if(cas2 && cas2.style.display==='none') cas2.style.display='';
+      }
+    }catch(e){}
+  }
+  document.addEventListener('click', function(e){
+    try{
+      var b=e.target && e.target.closest ? e.target.closest('button, a') : null;
+      if(!b) return;
+      var txt=String(b.textContent||'').trim();
+      if(txt.indexOf('Mis tickets')!==-1){
+        setTimeout(_aplicar, 150);
+        setTimeout(_aplicar, 400);
+        setTimeout(_aplicar, 900);
+        setTimeout(function(){ try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(e2){ try{ window.scrollTo(0,0); }catch(e3){} } }, 200);
+      }
+    }catch(e){}
+  }, true);
+  setInterval(_aplicar, 600);
+  try{
+    var obs=new MutationObserver(function(){ _aplicar(); });
+    obs.observe(document.body, {childList:true, subtree:true});
+  }catch(e){}
+  _aplicar();
+})();
+</script>
+
 </body>
 
 
