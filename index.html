@@ -16557,99 +16557,123 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
   body.checktiva-info-oculta #checktiva-info-legal-inicio{ display:none !important; visibility:hidden !important; }
   body.checktiva-mis-tickets-abierto #checktiva-casillas-finales,
   body.checktiva-mis-tickets-abierto #checktiva-info-legal-inicio{ display:none !important; visibility:hidden !important; }
-  body.checktiva-mis-tickets-abierto div[class*="z-[65]"]{ z-index:999999 !important; display:flex !important; visibility:visible !important; opacity:1 !important; pointer-events:auto !important; }
 </style>
 <script id="checktiva-fix-info-solo-inicio">
 (function(){
-  if(window.__checktivaInfoSoloInicioV3) return;
-  window.__checktivaInfoSoloInicioV3 = true;
-  console.log('FIX INFO solo en inicio: en ninguna otra ventana se ve');
+  if(window.__checktivaInfoSoloInicioV4) return;
+  window.__checktivaInfoSoloInicioV4 = true;
+  console.log('FIX INFO solo inicio v4: deteccion directa sin selector con corchetes');
+  var ultimoClickMisTickets = 0;
   function _esVisible(el){
     try{
       if(!el) return false;
+      if(el.style && el.style.display==='none') return false;
       var st=window.getComputedStyle ? window.getComputedStyle(el) : null;
       if(st && (st.display==='none' || st.visibility==='hidden')) return false;
-      if(el.style && el.style.display==='none') return false;
       return true;
     }catch(e){ return false; }
   }
-  function _hayModalAbierto(){
+  // Deteccion directa: recorrer divs y revisar className como texto, sin querySelector con corchetes
+  function _hayMisTicketsAbierto(){
     try{
+      var divs=document.getElementsByTagName('div');
+      for(var i=0;i<divs.length;i++){
+        var d=divs[i];
+        var cn=String(d.className||'');
+        // La ventanilla de Mis Tickets es la unica con z-[65] y con el titulo + ordenes
+        if(cn.indexOf('z-[65]')===-1) continue;
+        var txt=String(d.textContent||'');
+        if(txt.indexOf('Mis tickets')!==-1 && txt.indexOf('órdenes')!==-1) return true;
+      }
+    }catch(e){}
+    return false;
+  }
+  function _hayOtroModal(){
+    try{
+      var qr=document.getElementById('checktiva-qr-modal');
+      if(qr && _esVisible(qr)) return true;
+      var edit=document.getElementById('checktiva-edit-modal');
+      if(edit && _esVisible(edit)) return true;
+      var cat=document.getElementById('checktiva-cat-modal');
+      if(cat && _esVisible(cat)) return true;
       // Admin
       var root=document.getElementById('root');
       var txtRoot=root ? (root.textContent||'') : '';
       if(txtRoot.indexOf('Panel Administrador')!==-1) return true;
       if(document.querySelector('input[placeholder*="Usuario administrador"]')) return true;
-      // Mis Tickets drawer
-      try{
-        var list=document.querySelectorAll('div[class*="z-[65]"]');
-        for(var i=0;i<list.length;i++){
-          var t=String(list[i].textContent||'');
-          if(t.indexOf('Mis tickets')!==-1 && t.indexOf('órdenes')!==-1) return true;
-        }
-      }catch(e){}
-      // Boleta / QR modal
-      var qr=document.getElementById('checktiva-qr-modal');
-      if(qr && _esVisible(qr)) return true;
-      // Editar perfil
-      var edit=document.getElementById('checktiva-edit-modal');
-      if(edit && _esVisible(edit)) return true;
-      // Modal de categoria
-      var cat=document.getElementById('checktiva-cat-modal');
-      if(cat && _esVisible(cat)) return true;
-      // Carrito, login, y cualquier ventana fija grande abierta
-      try{
-        var fijos=document.querySelectorAll('div[class*="fixed inset-0"]');
-        for(var j=0;j<fijos.length;j++){
-          var f=fijos[j];
-          if(!_esVisible(f)) continue;
-          var ft=String(f.textContent||'');
-          if(ft.indexOf('Tu carrito')!==-1) return true;
-          if(ft.indexOf('Iniciar sesión')!==-1 && ft.indexOf('Crear cuenta')!==-1) return true;
-          if(ft.indexOf('Boleta Oficial')!==-1) return true;
-          if(ft.indexOf('Panel Admin')!==-1 && ft.indexOf('Dashboard')!==-1) return true;
-        }
-      }catch(e2){}
+      // Carrito / login / Boleta: buscar div fijo visible con esos textos, por className directo
+      var divs=document.getElementsByTagName('div');
+      for(var j=0;j<divs.length;j++){
+        var d2=divs[j];
+        var cn2=String(d2.className||'');
+        if(cn2.indexOf('fixed')===-1 || cn2.indexOf('inset-0')===-1) continue;
+        if(!_esVisible(d2)) continue;
+        var ft=String(d2.textContent||'');
+        if(ft.indexOf('Tu carrito')!==-1 && ft.length<3000) return true;
+        if(ft.indexOf('Boleta Oficial')!==-1) return true;
+      }
     }catch(e){}
     return false;
   }
-  function _aplicar(){
+  function _ocultar(){
     try{
-      var ocultar=_hayModalAbierto();
-      if(ocultar){
-        document.body.classList.add('checktiva-info-oculta');
-        document.body.classList.add('checktiva-mis-tickets-abierto');
-        var cas=document.getElementById('checktiva-casillas-finales');
-        if(cas){ cas.style.setProperty('display','none','important'); cas.style.setProperty('visibility','hidden','important'); }
-        var info=document.getElementById('checktiva-info-legal-inicio');
-        if(info){ info.style.setProperty('display','none','important'); }
-      } else {
-        // Solo en inicio: volver a mostrar
-        document.body.classList.remove('checktiva-info-oculta');
-        document.body.classList.remove('checktiva-mis-tickets-abierto');
-        var cas2=document.getElementById('checktiva-casillas-finales');
-        if(cas2){ cas2.style.removeProperty('display'); cas2.style.removeProperty('visibility'); cas2.style.display=''; }
-      }
+      document.body.classList.add('checktiva-info-oculta');
+      document.body.classList.add('checktiva-mis-tickets-abierto');
+      var cas=document.getElementById('checktiva-casillas-finales');
+      if(cas){ cas.style.setProperty('display','none','important'); cas.style.setProperty('visibility','hidden','important'); }
+      var info=document.getElementById('checktiva-info-legal-inicio');
+      if(info){ info.style.setProperty('display','none','important'); }
+      // Subir ventanilla de Mis Tickets al frente si existe
+      try{
+        var divs=document.getElementsByTagName('div');
+        for(var k=0;k<divs.length;k++){
+          var d=divs[k];
+          var cn=String(d.className||'');
+          if(cn.indexOf('z-[65]')!==-1){
+            var txt=String(d.textContent||'');
+            if(txt.indexOf('Mis tickets')!==-1){
+              d.style.setProperty('z-index','999999','important');
+              d.style.setProperty('display','flex','important');
+              d.style.setProperty('visibility','visible','important');
+              d.style.setProperty('opacity','1','important');
+            }
+          }
+        }
+      }catch(e2){}
     }catch(e){}
   }
-  // Al oprimir Mis tickets, ocultar de inmediato y subir para que se vea la ventanilla
+  function _mostrar(){
+    try{
+      document.body.classList.remove('checktiva-info-oculta');
+      document.body.classList.remove('checktiva-mis-tickets-abierto');
+      var cas=document.getElementById('checktiva-casillas-finales');
+      if(cas){ cas.style.removeProperty('display'); cas.style.removeProperty('visibility'); cas.style.display=''; }
+    }catch(e){}
+  }
+  function _aplicar(){
+    try{
+      var haceClick = (Date.now() - ultimoClickMisTickets) < 5000;
+      var ocultar = haceClick || _hayMisTicketsAbierto() || _hayOtroModal();
+      if(ocultar) _ocultar(); else _mostrar();
+    }catch(e){}
+  }
   document.addEventListener('click', function(e){
     try{
       var b=e.target && e.target.closest ? e.target.closest('button, a') : null;
       if(!b) return;
       var txt=String(b.textContent||'').trim();
       if(txt.indexOf('Mis tickets')!==-1 && txt.length<60){
-        document.body.classList.add('checktiva-info-oculta');
-        document.body.classList.add('checktiva-mis-tickets-abierto');
-        _aplicar();
-        setTimeout(_aplicar, 150);
-        setTimeout(_aplicar, 400);
-        setTimeout(_aplicar, 900);
+        ultimoClickMisTickets=Date.now();
+        _ocultar();
+        setTimeout(_ocultar, 150);
+        setTimeout(_ocultar, 400);
+        setTimeout(_ocultar, 900);
+        setTimeout(_aplicar, 1500);
         setTimeout(function(){ try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(e2){ try{ window.scrollTo(0,0); }catch(e3){} } }, 200);
       }
     }catch(e){}
   }, true);
-  setInterval(_aplicar, 500);
+  setInterval(_aplicar, 400);
   try{
     var obs=new MutationObserver(function(){ _aplicar(); });
     obs.observe(document.body, {childList:true, subtree:true});
