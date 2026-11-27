@@ -4758,7 +4758,7 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
   setTimeout(_ocultarFechasImagenes, 4000);
 
   // Info legal abajo, cerca de la información del inicio, antes del footer
-  function _inyectarInfoLegal(){
+  function _inyectarInfoLegal(){ return; // FIX DEFINITIVO: nunca inyectar copia de INFO, solo queda la fija del inicio
     try{
       // Si el admin está abierto, NO inyectar info (no tapar el login)
       if(document.body && (document.body.textContent||'').indexOf('Panel Administrador')!==-1) return;
@@ -5223,7 +5223,7 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
 
 
 <!-- INFORMACIÓN IMPORTANTE - 7 casillas una debajo de otra, al final de todo, después del footer -->
-<section id="checktiva-casillas-finales" style="max-width:1280px;margin:0 auto;padding:28px 24px 40px 24px;background:#0A0A0A;border-top:1px solid rgba(139,105,20,0.35);">
+<section id="checktiva-casillas-finales" style="display:none;max-width:1280px;margin:0 auto;padding:28px 24px 40px 24px;background:#0A0A0A;border-top:1px solid rgba(139,105,20,0.35);">
   <div style="max-width:900px;margin:0 auto;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
       <span style="font-size:22px;">⚠️</span>
@@ -10147,13 +10147,11 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
         _ultimoAdmin = admin;
       }
       _asegurarDummy();
-      // Si Mis Tickets esta abierto, NO devolver la INFO: debe seguir oculta.
+      // FIX DEFINITIVO: nunca restaurar la INFO desde este script viejo. La INFO solo se muestra desde el script final si estamos en inicio sin ninguna ventana. Si no, se queda eliminada.
       try{
-        if(!admin && !document.body.classList.contains('checktiva-mis-tickets-abierto') && !document.body.classList.contains('checktiva-info-oculta')){
-          var fija = document.getElementById('checktiva-casillas-finales');
-          if(fija && fija.style && fija.style.display === 'none'){
-            fija.style.display = '';
-          }
+        var fijaVieja = document.getElementById('checktiva-casillas-finales');
+        if(fijaVieja && !document.body.classList.contains('checktiva-en-inicio')){
+          fijaVieja.style.setProperty('display','none','important');
         }
       }catch(e2){}
     }catch(e3){}
@@ -16564,9 +16562,9 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
 </style>
 <script id="checktiva-fix-info-solo-inicio">
 (function(){
-  if(window.__checktivaInfoSoloInicioV5) return;
-  window.__checktivaInfoSoloInicioV5 = true;
-  console.log('FIX INFO solo inicio v5: INFO solo en inicio, nunca en Mis Tickets ni en ninguna ventana');
+  if(window.__checktivaInfoSoloInicioV6) return;
+  window.__checktivaInfoSoloInicioV6 = true;
+  console.log('FIX INFO v6: INFO solo en inicio arriba de la foto del codigo, eliminada de todo lo demas incluido admin');
   var misTicketsPedido = false;
   var contadorSinModal = 0;
   function _esVisible(el){
@@ -16576,6 +16574,32 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
       var st=window.getComputedStyle ? window.getComputedStyle(el) : null;
       if(st && (st.display==='none' || st.visibility==='hidden')) return false;
       return true;
+    }catch(e){ return false; }
+  }
+  function _esAdmin(){
+    try{
+      // URL admin
+      if(window.location && window.location.search && window.location.search.indexOf('admin=true')!==-1) return true;
+      // localStorage admin
+      try{
+        if(localStorage.getItem('checking_admin')==='true' || localStorage.getItem('checking_isAdmin')==='true') return true;
+      }catch(e){}
+      var root=document.getElementById('root');
+      var txt=root ? (root.textContent||'') : '';
+      var bodyTxt=document.body ? (document.body.textContent||'') : '';
+      // Login admin
+      if(txt.indexOf('Panel Administrador')!==-1) return true;
+      if(txt.indexOf('Usuario administrador')!==-1) return true;
+      if(document.querySelector('input[placeholder*="Usuario administrador"]')) return true;
+      // Dashboard admin YA LOGUEADO - aqui estaba el error: antes solo buscaba Panel Administrador
+      if(txt.indexOf('Modo Administrador')!==-1) return true;
+      if(txt.indexOf('Tú eres el administrador')!==-1) return true;
+      if(txt.indexOf('Crear Eventos')!==-1 && txt.indexOf('Ventas / Tickets')!==-1) return true;
+      if(txt.indexOf('Dashboard')!==-1 && txt.indexOf('Crear Eventos')!==-1) return true;
+      if(txt.indexOf('ADMIN MODE')!==-1) return true;
+      // Si el body tiene la clase de admin de otro script
+      if(document.body.classList.contains('checktiva-admin-abierto')) return true;
+      return false;
     }catch(e){ return false; }
   }
   function _hayMisTicketsAbierto(){
@@ -16588,11 +16612,15 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
         var txt=String(d.textContent||'');
         if(txt.indexOf('Mis tickets')!==-1 && txt.indexOf('órdenes')!==-1) return true;
       }
+      // Respaldo de Mis Tickets
+      var resp=document.getElementById('checktiva-mis-tickets-respaldo');
+      if(resp && resp.classList.contains('checktiva-respaldo-abierto')) return true;
     }catch(e){}
     return false;
   }
   function _hayCualquierVentana(){
     try{
+      if(_esAdmin()) return true;
       if(_hayMisTicketsAbierto()) return true;
       var qr=document.getElementById('checktiva-qr-modal');
       if(qr && _esVisible(qr)) return true;
@@ -16600,10 +16628,6 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
       if(edit && _esVisible(edit)) return true;
       var cat=document.getElementById('checktiva-cat-modal');
       if(cat && _esVisible(cat)) return true;
-      var root=document.getElementById('root');
-      var txtRoot=root ? (root.textContent||'') : '';
-      if(txtRoot.indexOf('Panel Administrador')!==-1) return true;
-      if(document.querySelector('input[placeholder*="Usuario administrador"]')) return true;
       var divs=document.getElementsByTagName('div');
       for(var j=0;j<divs.length;j++){
         var d2=divs[j];
@@ -16614,40 +16638,41 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
         if(ft.indexOf('Tu carrito')!==-1 && ft.length<3000) return true;
         if(ft.indexOf('Boleta Oficial')!==-1) return true;
         if(ft.indexOf('Iniciar sesión')!==-1 && ft.indexOf('Crear cuenta')!==-1) return true;
+        if(ft.indexOf('Checkout')!==-1 && ft.indexOf('Paso')!==-1) return true;
       }
     }catch(e){}
     return false;
   }
+  function _eliminarCopiasInfo(){
+    try{
+      // La copia inyectada #checktiva-info-legal-inicio: eliminarla SIEMPRE, la unica que queda es #checktiva-casillas-finales en inicio
+      var info=document.getElementById('checktiva-info-legal-inicio');
+      if(info){
+        // Si es el dummy vacio, dejarlo oculto. Si tiene contenido (es la ventana fastidiosa), eliminarlo.
+        var txtInfo=(info.textContent||'').trim();
+        if(txtInfo.length>50){
+          info.remove();
+        } else {
+          info.style.setProperty('display','none','important');
+        }
+      }
+    }catch(e){}
+  }
   function _ocultarInfo(){
     try{
+      _eliminarCopiasInfo();
       document.body.classList.add('checktiva-info-oculta');
       document.body.classList.add('checktiva-mis-tickets-abierto');
       document.body.classList.remove('checktiva-en-inicio');
       var cas=document.getElementById('checktiva-casillas-finales');
       if(cas){ cas.style.setProperty('display','none','important'); cas.style.setProperty('visibility','hidden','important'); }
-      var info=document.getElementById('checktiva-info-legal-inicio');
-      if(info){ info.style.setProperty('display','none','important'); }
-      // Ventanilla de Mis Tickets al frente
-      try{
-        var divs=document.getElementsByTagName('div');
-        for(var k=0;k<divs.length;k++){
-          var d=divs[k];
-          var cn=String(d.className||'');
-          if(cn.indexOf('z-[65]')!==-1){
-            var txt=String(d.textContent||'');
-            if(txt.indexOf('Mis tickets')!==-1){
-              d.style.setProperty('z-index','999999','important');
-              d.style.setProperty('display','flex','important');
-              d.style.setProperty('visibility','visible','important');
-              d.style.setProperty('opacity','1','important');
-            }
-          }
-        }
-      }catch(e2){}
     }catch(e){}
   }
   function _mostrarSoloEnInicio(){
     try{
+      _eliminarCopiasInfo();
+      // Nunca mostrar si estamos en admin o hay ventana
+      if(_hayCualquierVentana()){ _ocultarInfo(); return; }
       document.body.classList.remove('checktiva-info-oculta');
       document.body.classList.remove('checktiva-mis-tickets-abierto');
       document.body.classList.add('checktiva-en-inicio');
@@ -16657,10 +16682,8 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
   }
   function _aplicar(){
     try{
-      // Si se pidio Mis Tickets, NO volver a mostrar INFO hasta que se cierre de verdad
       if(misTicketsPedido){
         _ocultarInfo();
-        // Solo liberar si la ventanilla ya no esta Y pasaron 3 chequeos sin ventana
         if(!_hayCualquierVentana()){
           contadorSinModal++;
           if(contadorSinModal>=3){
@@ -16668,9 +16691,7 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
             contadorSinModal=0;
             _mostrarSoloEnInicio();
           }
-        } else {
-          contadorSinModal=0;
-        }
+        } else { contadorSinModal=0; }
         return;
       }
       if(_hayCualquierVentana()){
@@ -16682,14 +16703,13 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
       }
     }catch(e){}
   }
-  // Cualquier boton que abre una ventana -> ocultar INFO y no restaurarla hasta cerrar
   document.addEventListener('click', function(e){
     try{
       var b=e.target && e.target.closest ? e.target.closest('button, a') : null;
       if(!b) return;
       var txt=String(b.textContent||'').trim();
-      // Mis Tickets, Panel Admin, Carrito, Iniciar sesion: todos ocultan INFO
-      if((txt.indexOf('Mis tickets')!==-1 && txt.length<60) || txt.indexOf('Panel Admin')!==-1 || txt.indexOf('Carrito')!==-1 || txt.indexOf('Iniciar sesión')!==-1){
+      // Cualquier boton de admin, Mis Tickets, carrito, login, casillas -> ocultar INFO
+      if((txt.indexOf('Mis tickets')!==-1 && txt.length<60) || txt.indexOf('Panel Admin')!==-1 || txt.indexOf('Carrito')!==-1 || txt.indexOf('Iniciar sesión')!==-1 || txt.indexOf('Dashboard')!==-1 || txt.indexOf('Crear Eventos')!==-1 || txt.indexOf('Ventas / Tickets')!==-1 || txt.indexOf('Configuración')!==-1 || txt.indexOf('Ver web cliente')!==-1){
         if(txt.indexOf('Mis tickets')!==-1) misTicketsPedido=true;
         contadorSinModal=0;
         _ocultarInfo();
@@ -16701,21 +16721,16 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
         }
         return;
       }
-      // Cerrar Mis Tickets: X o fondo oscuro dentro de la ventanilla
       if(misTicketsPedido){
         try{
-          var enDrawer = b.closest ? b.closest('div') : null;
-          // Buscar si el clic fue dentro de la ventanilla y es el boton de cerrar (X) o el fondo
           var divs=document.getElementsByTagName('div');
           for(var q=0;q<divs.length;q++){
             var d=divs[q];
             var cn=String(d.className||'');
             if(cn.indexOf('z-[65]')===-1) continue;
             if(!d.contains(b)) continue;
-            var clsBtn=String(b.className||'');
             var txtBtn=String(b.textContent||'').trim();
-            if(clsBtn.indexOf('bg-black/70')!==-1 || txtBtn==='' || txtBtn==='×' || txtBtn==='X' || txtBtn==='✕'){
-              // Dar tiempo a React a cerrar, luego liberar
+            if(txtBtn==='' || txtBtn==='×' || txtBtn==='X' || txtBtn==='✕'){
               setTimeout(function(){ misTicketsPedido=false; contadorSinModal=0; _aplicar(); }, 300);
               break;
             }
@@ -16724,9 +16739,9 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
       }
     }catch(e){}
   }, true);
-  // Al abrir el enlace, empezar arriba en inicio, no abajo en la INFO
   try{ window.scrollTo(0,0); }catch(e){}
   setInterval(_aplicar, 400);
+  setInterval(_eliminarCopiasInfo, 1000);
   try{
     var obs=new MutationObserver(function(){ _aplicar(); });
     obs.observe(document.body, {childList:true, subtree:true});
@@ -16899,6 +16914,64 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
       }
     }catch(e){}
   }, 1000);
+})();
+</script>
+
+
+<!-- INFO como imagen fija en inicio, sin accion en ningun lado -->
+<style id="checktiva-info-imagen-fija-css">
+  /* En inicio: la INFO es solo un bloque fijo, como imagen, arriba de la foto del codigo. No es ventana, no es boton, no se abre. */
+  body.checktiva-en-inicio #checktiva-casillas-finales{
+    display:block !important; visibility:visible !important;
+    position:static !important; pointer-events:none !important;
+  }
+  body.checktiva-en-inicio #checktiva-casillas-finales *{ pointer-events:none !important; }
+  /* En todo lo demas: eliminada por completo, nunca como ventana */
+  body:not(.checktiva-en-inicio) #checktiva-casillas-finales,
+  body:not(.checktiva-en-inicio) #checktiva-info-legal-inicio{
+    display:none !important; visibility:hidden !important; pointer-events:none !important;
+  }
+  #checktiva-info-legal-inicio{ display:none !important; }
+</style>
+<script id="checktiva-info-imagen-fija-js">
+(function(){
+  if(window.__checktivaInfoImagenFija) return;
+  window.__checktivaInfoImagenFija = true;
+  // Quitar cualquier accion que abra la INFO como ventana al oprimir casillas / admin / cualquier boton
+  document.addEventListener('click', function(e){
+    try{
+      var t = e.target;
+      // Si el clic es DENTRO de la INFO en inicio, no hacer nada: es solo imagen fija, no abre nada
+      var cas = document.getElementById('checktiva-casillas-finales');
+      if(cas && cas.contains(t)){
+        e.stopPropagation();
+        return;
+      }
+      // Si el clic es en un boton que antes abria la INFO como ventana, no dejar que la abra
+      var b = t && t.closest ? t.closest('button, a') : null;
+      if(!b) return;
+      var txt = String(b.textContent||'').trim().toLowerCase();
+      if(txt.indexOf('casilla')!==-1 || txt.indexOf('información importante')!==-1 || txt.indexOf('informacion importante')!==-1){
+        // Solo permitir que se vea en inicio como imagen fija, nunca como ventana
+        // No abrir nada, no hacer scroll a la INFO
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+    }catch(err){}
+  }, true);
+  // Asegurar que la INFO nunca quede como ventana fija: siempre estatica en inicio
+  setInterval(function(){
+    try{
+      var cas = document.getElementById('checktiva-casillas-finales');
+      if(!cas) return;
+      if(document.body.classList.contains('checktiva-en-inicio')){
+        cas.style.setProperty('position','static','important');
+      } else {
+        cas.style.setProperty('display','none','important');
+      }
+    }catch(e){}
+  }, 500);
 })();
 </script>
 
