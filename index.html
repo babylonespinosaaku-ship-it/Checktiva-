@@ -17233,6 +17233,10 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
   // Cada boton abre su propia funcion: ventas abre Ventas, dashboard abre Dashboard, y asi.
   document.addEventListener('click', function(e){
     try{
+      // CORTO: los clics que dispara el propio reintento con pill.click() NO son del usuario
+      // (isTrusted === false). Si no se ignoran, cada reintento crea otro pedido y la pildora
+      // se vuelve a oprimir sola sin parar: abre y cierra, abre y cierra. Solo valen los toques reales.
+      if(e && e.isTrusted === false) return;
       var btn = e.target && e.target.closest ? e.target.closest('button') : null;
       if(!btn) return;
       var info = _tabDeBoton(btn);
@@ -17244,11 +17248,11 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
   }, true);
 })();
 </script>
-<!-- FIX CERRAR VUELVE A INICIO: al cerrar Mis Tickets (X o fondo), Boleta/QR, carrito, login, registro, categoria o admin, volver al inicio normal. No toca interfaz, no frena clics, no elimina nada. Solo quita las marcas que los scripts de fix ponen para ocultar INFO/QR/footer cuando hay ventana abierta, y solo cuando YA no hay ninguna ventana abierta. Si hay ventana o admin visible, no toca nada. -->
-<script id="checktiva-cerrar-vuelve-inicio-v1">
+<!-- ESTABILIZADOR INICIO: la pagina vuelve a como estaba antes de la base de datos. La INFO, el QR del inicio y el footer son solo secciones fijas al final de la pagina, no ventanas. Un solo script manda sobre la clase de inicio y limpia los estilos en linea que los scripts viejos de INFO ponen para ocultar. NO toca base de datos, ni sincronizacion, ni lector QR, ni ventas, ni precios, ni eventos, ni cuentas. -->
+<script id="checktiva-estabilizador-inicio-v1">
 (function(){
-  if(window.__checktivaCerrarVuelveInicio) return;
-  window.__checktivaCerrarVuelveInicio = true;
+  if(window.__checktivaEstabilizadorInicio) return;
+  window.__checktivaEstabilizadorInicio = true;
 
   function _esVisible(el){
     try{
@@ -17271,11 +17275,9 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
       if(txt.indexOf('Panel Administrador')!==-1) return true;
       if(txt.indexOf('Modo Administrador')!==-1) return true;
       if(txt.indexOf('T\u00fa eres el administrador')!==-1) return true;
-      if(txt.indexOf('Usuario administrador')!==-1) return true;
       if(txt.indexOf('ADMIN MODE')!==-1) return true;
       if(txt.indexOf('Crear Eventos')!==-1 && txt.indexOf('Ventas / Tickets')!==-1) return true;
       if(txt.indexOf('Dashboard')!==-1 && txt.indexOf('Crear Eventos')!==-1) return true;
-      // Pildoras Ventas / Registros / Cuentas visibles: en inicio React no las renderiza.
       var btns=document.querySelectorAll('button');
       for(var i=0;i<btns.length;i++){
         var bt=String(btns[i].textContent||'').trim();
@@ -17306,57 +17308,70 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
         if(d.id==='checktiva-casillas-finales' || d.id==='checktiva-qr-entrada' || d.id==='checktiva-footer-legal') continue;
         return true;
       }
-      // Respaldo Mis Tickets
       var resp=document.getElementById('checktiva-mis-tickets-respaldo');
       if(resp && resp.classList.contains('checktiva-respaldo-abierto')) return true;
-      // Boleta / QR (position:fixed por estilo, no por clase)
       var qr=document.getElementById('checktiva-qr-modal');
       if(qr && _esVisible(qr)) return true;
-      // Editar perfil
       var edit=document.getElementById('checktiva-edit-modal');
       if(edit && _esVisible(edit)) return true;
-      // Categoria / eventos
       var cat=document.getElementById('checktiva-cat-modal');
       if(cat && _esVisible(cat)) return true;
-      // Registros overlay (creado dinamico)
       var reg=document.getElementById('checktiva-registros-overlay');
       if(reg && _esVisible(reg)) return true;
-      // Cuentas overlay
       var cuentas=document.getElementById('checktiva-cuentas-overlay');
       if(cuentas && _esVisible(cuentas)) return true;
-      // Panel validacion pagos: si existe es que esta abierto, su X lo elimina
       if(document.getElementById('panel-validacion-qr')) return true;
     }catch(e){}
     return false;
   }
 
-  function _restaurarInicio(){
+  // Limpia SOLO los estilos en linea que los scripts viejos de INFO ponen para ocultar/mostrar.
+  // La hoja de estilo con la clase de inicio es la que manda. No se elimina ningun elemento.
+  // Solo se quita si de verdad hay algo puesto, para no disparar el observador en vano.
+  function _limpiarEstilosEnLinea(){
     try{
-      // Solo quitar las marcas que los scripts de fix ponen al abrir una ventana.
-      // No se elimina ningun elemento, no se cambia contenido, no se toca React.
-      document.body.classList.remove('checktiva-info-oculta');
-      document.body.classList.remove('checktiva-mis-tickets-abierto');
-      document.body.classList.remove('checktiva-no-inicio');
-      document.body.classList.remove('checktiva-admin-abierto');
-      document.body.classList.add('checktiva-en-inicio');
       var ids=['checktiva-casillas-finales','checktiva-qr-entrada','checktiva-footer-legal'];
       for(var i=0;i<ids.length;i++){
         var el=document.getElementById(ids[i]);
-        if(!el) continue;
-        try{ el.style.removeProperty('display'); }catch(e){}
-        try{ el.style.removeProperty('visibility'); }catch(e){}
-        try{ el.style.display=''; }catch(e){}
+        if(!el || !el.style) continue;
+        if(el.style.getPropertyValue('display')){ try{ el.style.removeProperty('display'); }catch(e){} }
+        if(el.style.getPropertyValue('visibility')){ try{ el.style.removeProperty('visibility'); }catch(e){} }
+        if(el.style.getPropertyValue('position')){ try{ el.style.removeProperty('position'); }catch(e){} }
+        if(el.style.display){ try{ el.style.display=''; }catch(e){} }
       }
-      // Si alguna ventana dejo el scroll bloqueado, devolverlo. Solo cuando no hay ventana.
-      try{ document.body.style.overflow=''; }catch(e){}
-      try{ document.documentElement.style.overflow=''; }catch(e){}
     }catch(e){}
   }
 
+  var _estadoAnteriorInicio = null; // null = aun no se sabe; true = estabamos en inicio; false = habia ventana/admin
   function _aplicar(){
     try{
-      if(_hayVentanaAbierta()) return; // Hay ventana o admin visible: no tocar nada, los otros scripts mandan.
-      _restaurarInicio();
+      var ventana=_hayVentanaAbierta();
+      var admin=_hayAdminVisible();
+      var inicio=!ventana && !admin;
+      if(inicio){
+        document.body.classList.remove('checktiva-info-oculta');
+        document.body.classList.remove('checktiva-mis-tickets-abierto');
+        document.body.classList.remove('checktiva-no-inicio');
+        document.body.classList.remove('checktiva-admin-abierto');
+        document.body.classList.add('checktiva-en-inicio');
+        _limpiarEstilosEnLinea();
+        // Acaba de cerrarse una ventana y volvimos a inicio: subir al inicio de verdad,
+        // arriba con los eventos, no quedarse abajo donde esta la INFO.
+        if(_estadoAnteriorInicio===false){
+          try{ window.scrollTo(0,0); }catch(e){}
+          try{ document.documentElement.scrollTop=0; }catch(e){}
+          try{ document.body.scrollTop=0; }catch(e){}
+        }
+      } else {
+        // Hay ventana o admin: quitar la clase de inicio para que la hoja oculte INFO/QR/footer.
+        // No poner clases de ocultar ni estilos en linea: el fondo de la ventana ya los tapa.
+        document.body.classList.remove('checktiva-en-inicio');
+        document.body.classList.remove('checktiva-info-oculta');
+        document.body.classList.remove('checktiva-mis-tickets-abierto');
+        document.body.classList.remove('checktiva-no-inicio');
+        _limpiarEstilosEnLinea();
+      }
+      _estadoAnteriorInicio=inicio;
     }catch(e){}
   }
 
@@ -17364,17 +17379,17 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
   // React cierra primero; este script solo revisa despues, sin frenar el clic.
   // Nunca preventDefault, nunca stopPropagation, nunca mover nodos.
   document.addEventListener('click', function(){
-    setTimeout(_aplicar, 250);
-    setTimeout(_aplicar, 700);
-    setTimeout(_aplicar, 1300);
+    setTimeout(_aplicar, 200);
+    setTimeout(_aplicar, 600);
+    setTimeout(_aplicar, 1200);
   }, true);
 
-  setInterval(_aplicar, 500);
+  setInterval(_aplicar, 800);
   try{
     var _t=null;
     var obs=new MutationObserver(function(){
       if(_t) clearTimeout(_t);
-      _t=setTimeout(_aplicar, 200);
+      _t=setTimeout(_aplicar, 120);
     });
     obs.observe(document.body, {childList:true, subtree:true, attributes:true, attributeFilter:['class','style']});
   }catch(e){}
