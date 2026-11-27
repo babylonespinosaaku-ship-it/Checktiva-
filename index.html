@@ -17081,6 +17081,307 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
   console.log('✅ FIX VENTAS: QR + INFO + footer solo en inicio, eliminados de Ventas y todo lo demas');
 })();
 </script>
+
+<!-- FIX VENTAS ABRE SIEMPRE: solo hace que el toque en las pildoras del admin llegue a React. No toca INFO, QR, precios, pagos, cuentas ni eventos. -->
+<style id="checktiva-ventas-abre-siempre-css">
+  /* El toque que empieza en una pildora del admin es un toque, no un arrastre del header. */
+  [data-checktiva-barrita-quieta="1"] > button { touch-action: manipulation !important; pointer-events: auto !important; }
+  aside button { touch-action: manipulation !important; }
+  /* El header del admin no desliza ni hace snap: el que desliza es solo la barrita. */
+  #admin-bar-container:not([data-checktiva-barrita-quieta="1"]) { overflow-x: hidden !important; overflow-y: hidden !important; touch-action: auto !important; scroll-snap-type: none !important; scroll-behavior: auto !important; cursor: default !important; }
+  #admin-bar-container:not([data-checktiva-barrita-quieta="1"]) > * { scroll-snap-align: none !important; }
+  /* La barrita desliza con scroll nativo, sin snap ni smooth que la mueva sola despues del toque. */
+  [data-checktiva-barrita-quieta="1"] { touch-action: pan-x !important; scroll-snap-type: none !important; scroll-behavior: auto !important; overscroll-behavior-x: contain !important; }
+  /* Tabs Ventas dentro de Registros: que el toque llegue. */
+  [data-reg-tab] { touch-action: manipulation !important; pointer-events: auto !important; }
+</style>
+<script id="checktiva-ventas-abre-siempre-v1">
+(function(){
+  if(window.__checktivaVentasAbreSiempre) return;
+  window.__checktivaVentasAbreSiempre = true;
+
+  function _txtBoton(btn){ try{ return String(btn.textContent || '').trim(); }catch(e){ return ''; } }
+
+  // Que pestaña es este boton, si es una pildora del admin o un tab de Registros. Si no es, null.
+  function _tabDeBoton(btn){
+    try{
+      if(!btn) return null;
+      if(btn.hasAttribute && btn.hasAttribute('data-reg-tab')){
+        return { tipo: 'reg', tab: btn.getAttribute('data-reg-tab') };
+      }
+      var t = _txtBoton(btn);
+      var tl = t.toLowerCase();
+      var tab = null;
+      if(tl === 'dashboard' || tl === 'eventos' || tl === 'ventas' || tl === 'config') tab = tl;
+      else if(t === 'Ventas / Tickets') tab = 'ventas';
+      else if(t === 'Dashboard') tab = 'dashboard';
+      else if(t === 'Crear Eventos') tab = 'eventos';
+      else if(t === 'Configuración' || t === 'Configuracion') tab = 'config';
+      if(!tab) return null;
+      // Solo si esta en la barrita movil o en el sidebar del admin, no en otra parte.
+      var enBarrita = false, enSidebar = false;
+      try{
+        if(btn.closest){
+          enBarrita = !!btn.closest('[data-checktiva-barrita-quieta="1"]');
+          enSidebar = !!btn.closest('aside');
+          if(!enBarrita && !enSidebar){
+            var padre = btn.parentElement;
+            if(padre && String(padre.className || '').indexOf('lg:hidden') !== -1) enBarrita = true;
+          }
+        }
+      }catch(e){}
+      if(!enBarrita && !enSidebar) return null;
+      return { tipo: 'admin', tab: tab };
+    }catch(e){ return null; }
+  }
+
+  // El arrastre viejo del header pone isDown=true con mousedown/touchstart y luego mueve el scroll
+  // con mousemove/touchmove, y ese movimiento cancela el clic. Si el toque empieza en una pildora,
+  // no dejar que suba al header. Nunca preventDefault: el scroll nativo de la barrita sigue funcionando
+  // y el clic sigue siendo un clic para React.
+  document.addEventListener('mousedown', function(e){
+    try{
+      var btn = e.target && e.target.closest ? e.target.closest('button') : null;
+      if(!btn) return;
+      if(_tabDeBoton(btn)) { try{ e.stopPropagation(); }catch(e2){} }
+    }catch(err){}
+  }, true);
+  document.addEventListener('touchstart', function(e){
+    try{
+      var btn = e.target && e.target.closest ? e.target.closest('button') : null;
+      if(!btn) return;
+      if(_tabDeBoton(btn)) { try{ e.stopPropagation(); }catch(e2){} }
+    }catch(err){}
+  }, true);
+  // El touchmove que empieza en la barrita no sube al header: sin doble movimiento.
+  document.addEventListener('touchmove', function(e){
+    try{
+      var t = e.target;
+      if(!t || !t.closest) return;
+      var barrita = t.closest('[data-checktiva-barrita-quieta="1"]');
+      if(!barrita){
+        var padre = t.closest('button') ? t.closest('button').parentElement : null;
+        if(!(padre && String(padre.className || '').indexOf('lg:hidden') !== -1)) return;
+      }
+      try{ e.stopPropagation(); }catch(e2){}
+    }catch(err){}
+  }, { capture: true, passive: true });
+
+  // Si la vista pedida ya se ve, sin reintento.
+  function _vistaVisible(tab){
+    try{
+      var txt = String(document.body ? document.body.textContent || '' : '');
+      if(tab === 'ventas') return txt.indexOf('Ventas \u2022 Tickets personalizados') !== -1;
+      if(tab === 'dashboard') return txt.indexOf('Ventas recientes') !== -1;
+      if(tab === 'eventos') return txt.indexOf('Crear evento') !== -1 || txt.indexOf('Crear Eventos') !== -1;
+      if(tab === 'config') return txt.indexOf('Cuenta administradora') !== -1;
+    }catch(e){}
+    return false;
+  }
+
+  // Buscar la pildora ACTUAL en el DOM. React la recrea al cambiar de pestana, por eso se busca
+  // cada vez y nunca se guarda el nodo viejo.
+  function _pildoraActual(tab){
+    try{
+      var btns = document.querySelectorAll('button');
+      for(var i = 0; i < btns.length; i++){
+        var t = _txtBoton(btns[i]).toLowerCase();
+        if(t === tab){
+          var p = btns[i].parentElement;
+          if(p && String(p.className || '').indexOf('lg:hidden') !== -1) return btns[i];
+          if(btns[i].closest && btns[i].closest('[data-checktiva-barrita-quieta="1"]')) return btns[i];
+        }
+      }
+      for(var j = 0; j < btns.length; j++){
+        var s = _txtBoton(btns[j]);
+        if(tab === 'ventas' && s.indexOf('Ventas / Tickets') !== -1) return btns[j];
+        if(tab === 'dashboard' && s === 'Dashboard') return btns[j];
+        if(tab === 'eventos' && s === 'Crear Eventos') return btns[j];
+        if(tab === 'config' && (s === 'Configuración' || s === 'Configuracion')) return btns[j];
+      }
+    }catch(e){}
+    return null;
+  }
+
+  var _pedido = null;
+  function _reintentar(){
+    try{
+      if(!_pedido) return;
+      if(Date.now() - _pedido.t > 2500){ _pedido = null; return; }
+      if(_pedido.tipo === 'reg'){
+        var cuerpo = document.getElementById('checktiva-registros-body');
+        if(!cuerpo){ _pedido = null; return; }
+        var txtC = String(cuerpo.textContent || '');
+        var ok = true;
+        if(_pedido.tab === 'ventas') ok = txtC.indexOf('Registro de ventas') !== -1;
+        if(ok || _pedido.intentos >= 1){ _pedido = null; return; }
+        _pedido.intentos++;
+        var btnReg = document.querySelector('[data-reg-tab="' + _pedido.tab + '"]');
+        if(btnReg){ try{ btnReg.click(); }catch(e){} setTimeout(_reintentar, 600); }
+        return;
+      }
+      if(_vistaVisible(_pedido.tab)){ _pedido = null; return; }
+      if(_pedido.intentos >= 2){ _pedido = null; return; }
+      _pedido.intentos++;
+      var pill = _pildoraActual(_pedido.tab);
+      if(pill){ try{ pill.click(); }catch(e){} setTimeout(_reintentar, 600); }
+      else { _pedido = null; }
+    }catch(e){}
+  }
+
+  // Solo observar el clic, nunca frenarlo: no preventDefault, no stopPropagation, no mover nodos.
+  // Cada boton abre su propia funcion: ventas abre Ventas, dashboard abre Dashboard, y asi.
+  document.addEventListener('click', function(e){
+    try{
+      var btn = e.target && e.target.closest ? e.target.closest('button') : null;
+      if(!btn) return;
+      var info = _tabDeBoton(btn);
+      if(!info) return;
+      _pedido = { tipo: info.tipo, tab: info.tab, t: Date.now(), intentos: 0 };
+      setTimeout(_reintentar, 500);
+      setTimeout(_reintentar, 1100);
+    }catch(err){}
+  }, true);
+})();
+</script>
+<!-- FIX CERRAR VUELVE A INICIO: al cerrar Mis Tickets (X o fondo), Boleta/QR, carrito, login, registro, categoria o admin, volver al inicio normal. No toca interfaz, no frena clics, no elimina nada. Solo quita las marcas que los scripts de fix ponen para ocultar INFO/QR/footer cuando hay ventana abierta, y solo cuando YA no hay ninguna ventana abierta. Si hay ventana o admin visible, no toca nada. -->
+<script id="checktiva-cerrar-vuelve-inicio-v1">
+(function(){
+  if(window.__checktivaCerrarVuelveInicio) return;
+  window.__checktivaCerrarVuelveInicio = true;
+
+  function _esVisible(el){
+    try{
+      if(!el) return false;
+      if(el.style && el.style.display==='none') return false;
+      var st=window.getComputedStyle ? window.getComputedStyle(el) : null;
+      if(st && (st.display==='none' || st.visibility==='hidden')) return false;
+      return true;
+    }catch(e){ return false; }
+  }
+
+  // Admin VISIBLE de verdad (vista admin renderizada), no solo logueado en localStorage.
+  // "Ver web cliente" cierra la vista pero deja checking_admin en true, por eso aqui
+  // NO se mira localStorage: si la vista admin no se ve, es inicio.
+  function _hayAdminVisible(){
+    try{
+      var root=document.getElementById('root');
+      var txt=root ? (root.textContent||'') : (document.body ? (document.body.textContent||'') : '');
+      if(txt.indexOf('Panel de Administrador')!==-1) return true;
+      if(txt.indexOf('Panel Administrador')!==-1) return true;
+      if(txt.indexOf('Modo Administrador')!==-1) return true;
+      if(txt.indexOf('T\u00fa eres el administrador')!==-1) return true;
+      if(txt.indexOf('Usuario administrador')!==-1) return true;
+      if(txt.indexOf('ADMIN MODE')!==-1) return true;
+      if(txt.indexOf('Crear Eventos')!==-1 && txt.indexOf('Ventas / Tickets')!==-1) return true;
+      if(txt.indexOf('Dashboard')!==-1 && txt.indexOf('Crear Eventos')!==-1) return true;
+      // Pildoras Ventas / Registros / Cuentas visibles: en inicio React no las renderiza.
+      var btns=document.querySelectorAll('button');
+      for(var i=0;i<btns.length;i++){
+        var bt=String(btns[i].textContent||'').trim();
+        if(bt==='Ventas' || bt==='Registros' || bt==='Cuentas'){
+          try{
+            var stB=window.getComputedStyle(btns[i]);
+            if(stB.display==='none' || stB.visibility==='hidden') continue;
+            if(btns[i].offsetParent===null && stB.position!=='fixed') continue;
+          }catch(e){}
+          return true;
+        }
+      }
+    }catch(e){}
+    return false;
+  }
+
+  function _hayVentanaAbierta(){
+    try{
+      if(_hayAdminVisible()) return true;
+      // Ventanas de React: las unicas div.fixed.inset-0 visibles son Mis Tickets, carrito/checkout,
+      // login, registro y exito. Los botones flotantes (Comprar, WhatsApp, toast) NO son inset-0.
+      var divs=document.getElementsByTagName('div');
+      for(var i=0;i<divs.length;i++){
+        var d=divs[i];
+        var cn=String(d.className||'');
+        if(cn.indexOf('fixed')===-1 || cn.indexOf('inset-0')===-1) continue;
+        if(!_esVisible(d)) continue;
+        if(d.id==='checktiva-casillas-finales' || d.id==='checktiva-qr-entrada' || d.id==='checktiva-footer-legal') continue;
+        return true;
+      }
+      // Respaldo Mis Tickets
+      var resp=document.getElementById('checktiva-mis-tickets-respaldo');
+      if(resp && resp.classList.contains('checktiva-respaldo-abierto')) return true;
+      // Boleta / QR (position:fixed por estilo, no por clase)
+      var qr=document.getElementById('checktiva-qr-modal');
+      if(qr && _esVisible(qr)) return true;
+      // Editar perfil
+      var edit=document.getElementById('checktiva-edit-modal');
+      if(edit && _esVisible(edit)) return true;
+      // Categoria / eventos
+      var cat=document.getElementById('checktiva-cat-modal');
+      if(cat && _esVisible(cat)) return true;
+      // Registros overlay (creado dinamico)
+      var reg=document.getElementById('checktiva-registros-overlay');
+      if(reg && _esVisible(reg)) return true;
+      // Cuentas overlay
+      var cuentas=document.getElementById('checktiva-cuentas-overlay');
+      if(cuentas && _esVisible(cuentas)) return true;
+      // Panel validacion pagos: si existe es que esta abierto, su X lo elimina
+      if(document.getElementById('panel-validacion-qr')) return true;
+    }catch(e){}
+    return false;
+  }
+
+  function _restaurarInicio(){
+    try{
+      // Solo quitar las marcas que los scripts de fix ponen al abrir una ventana.
+      // No se elimina ningun elemento, no se cambia contenido, no se toca React.
+      document.body.classList.remove('checktiva-info-oculta');
+      document.body.classList.remove('checktiva-mis-tickets-abierto');
+      document.body.classList.remove('checktiva-no-inicio');
+      document.body.classList.remove('checktiva-admin-abierto');
+      document.body.classList.add('checktiva-en-inicio');
+      var ids=['checktiva-casillas-finales','checktiva-qr-entrada','checktiva-footer-legal'];
+      for(var i=0;i<ids.length;i++){
+        var el=document.getElementById(ids[i]);
+        if(!el) continue;
+        try{ el.style.removeProperty('display'); }catch(e){}
+        try{ el.style.removeProperty('visibility'); }catch(e){}
+        try{ el.style.display=''; }catch(e){}
+      }
+      // Si alguna ventana dejo el scroll bloqueado, devolverlo. Solo cuando no hay ventana.
+      try{ document.body.style.overflow=''; }catch(e){}
+      try{ document.documentElement.style.overflow=''; }catch(e){}
+    }catch(e){}
+  }
+
+  function _aplicar(){
+    try{
+      if(_hayVentanaAbierta()) return; // Hay ventana o admin visible: no tocar nada, los otros scripts mandan.
+      _restaurarInicio();
+    }catch(e){}
+  }
+
+  // Al cerrar cualquier ventana (X, fondo, Cerrar, Ver web cliente, Volver),
+  // React cierra primero; este script solo revisa despues, sin frenar el clic.
+  // Nunca preventDefault, nunca stopPropagation, nunca mover nodos.
+  document.addEventListener('click', function(){
+    setTimeout(_aplicar, 250);
+    setTimeout(_aplicar, 700);
+    setTimeout(_aplicar, 1300);
+  }, true);
+
+  setInterval(_aplicar, 500);
+  try{
+    var _t=null;
+    var obs=new MutationObserver(function(){
+      if(_t) clearTimeout(_t);
+      _t=setTimeout(_aplicar, 200);
+    });
+    obs.observe(document.body, {childList:true, subtree:true, attributes:true, attributeFilter:['class','style']});
+  }catch(e){}
+  _aplicar();
+})();
+</script>
+
 </body>
 
 
