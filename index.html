@@ -4758,7 +4758,7 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
   setTimeout(_ocultarFechasImagenes, 4000);
 
   // Info legal abajo, cerca de la información del inicio, antes del footer
-  function _inyectarInfoLegal(){ return; // FIX DEFINITIVO: nunca inyectar copia de INFO, solo queda la fija del inicio
+  function _inyectarInfoLegal(){
     try{
       // Si el admin está abierto, NO inyectar info (no tapar el login)
       if(document.body && (document.body.textContent||'').indexOf('Panel Administrador')!==-1) return;
@@ -5223,7 +5223,7 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
 
 
 <!-- INFORMACIÓN IMPORTANTE - 7 casillas una debajo de otra, al final de todo, después del footer -->
-<section id="checktiva-casillas-finales" style="display:none;max-width:1280px;margin:0 auto;padding:28px 24px 40px 24px;background:#0A0A0A;border-top:1px solid rgba(139,105,20,0.35);">
+<section id="checktiva-casillas-finales" style="max-width:1280px;margin:0 auto;padding:28px 24px 40px 24px;background:#0A0A0A;border-top:1px solid rgba(139,105,20,0.35);">
   <div style="max-width:900px;margin:0 auto;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
       <span style="font-size:22px;">⚠️</span>
@@ -7393,7 +7393,7 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
   window.__checktivaNubeTicketsBajar = bajarYMezclar;
   window.__checktivaNubeTicketsSubir = function(){ return subirSiCambio(false); };
 })();
-<\/script>
+</script>
 
 
 <!-- Checktiva - Links legales al pie, agregado sin tocar el resto -->
@@ -7402,6 +7402,965 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
   <span style="color:#aaa;">WhatsApp 3006015633 • checktivaofficial@gmail.com</span>
 </div>
 
+<!-- FIX FINAL: QR oculto hasta validar + QR quieto sin parpadeo + eventos que si aparecen -->
+<script id="checktiva-fix-qr-oculto-quieto-eventos">
+(function(){
+  if(window.__checktivaQROcultoQuieto) return;
+  window.__checktivaQROcultoQuieto = true;
+  console.log('🔒 FIX FINAL QR oculto-quieto + eventos activo');
+  var SUPABASE_URL='https://ypjwzddddlinnrmtlgki.supabase.co';
+  var SUPABASE_KEY='sb_publishable_4zZ67hdGWK_HspMthhtPKg_ZuwbSvCD';
+
+  function _norm(s){ return String(s||'').toLowerCase().trim(); }
+  function _esPendiente(st){ var n=_norm(st); return n===''||n==='pendiente'||n==='pendiente_verificacion'||n==='pendiente_pago'||n==='pending'||n==='pendiente_validacion'||n==='por_validar'||n==='en_verificacion'; }
+  function _esValidadoSt(st){ var n=_norm(st); return n==='validado'||n==='pagado_confirmado'||n==='valido'||n==='activo'||n==='confirmado'||n==='aprobado'||n==='paid'||n==='completed'; }
+  function _esValidadoTicket(ticket, order){
+    try{
+      if(ticket && _esValidadoSt(ticket.status)) return true;
+      if(ticket && _esPendiente(ticket.status) && order && _esValidadoSt(order.status)) return true;
+      if(!ticket && order && _esValidadoSt(order.status)) return true;
+      return false;
+    }catch(e){ return false; }
+  }
+  function _leer(k){ try{ var r=localStorage.getItem(k); if(!r) return []; var a=JSON.parse(r); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+
+  // ---------- 1) LIMPIAR DATOS: qrGenerated solo vale si status es validado ----------
+  function _limpiarDatos(){
+    try{
+      var orders=_leer('checking_orders');
+      var cambio=false;
+      for(var i=0;i<orders.length;i++){
+        var o=orders[i]||{};
+        var ordenValidada=_esValidadoSt(o.status);
+        var ts=o.tickets||[];
+        for(var j=0;j<ts.length;j++){
+          var t=ts[j]||{};
+          var ticketValidado=_esValidadoSt(t.status);
+          if(ordenValidada && !ticketValidado){
+            // Si la orden ya esta validada, el ticket tambien debe quedar validado (promover, no degradar)
+            t.status='validado'; t.qrGenerated=true; cambio=true;
+          } else if(!ordenValidada && !ticketValidado){
+            // Pendiente real: NO debe tener qrGenerated en true. Esto es lo que hacia que el QR apareciera antes de validar.
+            if(t.qrGenerated){ t.qrGenerated=false; cambio=true; }
+          } else if(ticketValidado && !ordenValidada){
+            // Ticket validado pero orden pendiente: subir la orden tambien para que no flip-flop
+            o.status='pagado_confirmado'; o.qrGenerated=true; cambio=true;
+          }
+        }
+      }
+      if(cambio){ try{ localStorage.setItem('checking_orders', JSON.stringify(orders)); }catch(e){} }
+    }catch(e){}
+    try{
+      var cts=_leer('checktivas');
+      var cambio2=false;
+      var orders2=_leer('checking_orders');
+      var mapaOrden={};
+      for(var a=0;a<orders2.length;a++){ var oo=orders2[a]||{}; (oo.tickets||[]).forEach(function(tt){ if(tt&&tt.id) mapaOrden[tt.id]=oo; }); }
+      for(var k=0;k<cts.length;k++){
+        var ct=cts[k]||{};
+        var ord=mapaOrden[ct.id];
+        var vTicket=_esValidadoSt(ct.status);
+        var vOrden=ord ? _esValidadoSt(ord.status) : false;
+        if(vTicket || vOrden){
+          if(!vTicket){ ct.status='validado'; cambio2=true; }
+          if(!ct.qrGenerated){ ct.qrGenerated=true; cambio2=true; }
+        } else {
+          if(ct.qrGenerated){ ct.qrGenerated=false; cambio2=true; }
+        }
+      }
+      if(cambio2){ try{ localStorage.setItem('checktivas', JSON.stringify(cts)); }catch(e){} }
+    }catch(e){}
+  }
+  _limpiarDatos();
+  setInterval(_limpiarDatos, 2500);
+
+  // ---------- 2) PARCHE localStorage.setItem: que React no borre eventos ni degrade validacion ----------
+  try{
+    var _origSetItem = localStorage.setItem.bind(localStorage);
+    var _origGetItem = localStorage.getItem.bind(localStorage);
+    var _eventosInicialesIds = {};
+    try{ _leer('checking_events').forEach(function(ev){ if(ev&&ev.id) _eventosInicialesIds[String(ev.id)]=true; }); }catch(e){}
+    var _creadosEnSesion = {};
+    var _patchActivo = false;
+    // Si un script viejo ya parcheo setItem, no lo pisamos dos veces: guardamos el original real solo una vez
+    if(!localStorage.__checktivaSetItemParcheado){
+      localStorage.__checktivaSetItemParcheado = true;
+      localStorage.setItem = function(key, value){
+        try{
+          if(key==='checking_events'){
+            try{
+              var nuevo=JSON.parse(value||'[]');
+              if(Array.isArray(nuevo)){
+                var guardado=[];
+                try{ guardado=JSON.parse(_origGetItem('checking_events')||'[]'); }catch(e){ guardado=[]; }
+                if(!Array.isArray(guardado)) guardado=[];
+                // Detectar creados en esta sesion (ids nuevos que aparecen en nuevo y no estaban en guardado ni en iniciales)
+                var guardadoIds={}; guardado.forEach(function(ev){ if(ev&&ev.id) guardadoIds[String(ev.id)]=true; });
+                nuevo.forEach(function(ev){ if(ev&&ev.id){ var id=String(ev.id); if(!guardadoIds[id] && !_eventosInicialesIds[id]) _creadosEnSesion[id]=true; } });
+                // Extras sincronizados: estan en guardado, no en iniciales, no en nuevo, y no fueron creados en sesion -> son de la nube, hay que conservarlos
+                var nuevoIds={}; nuevo.forEach(function(ev){ if(ev&&ev.id) nuevoIds[String(ev.id)]=true; });
+                var extras=[];
+                guardado.forEach(function(ev){
+                  if(!ev||!ev.id) return;
+                  var id=String(ev.id);
+                  if(!nuevoIds[id] && !_eventosInicialesIds[id] && !_creadosEnSesion[id]) extras.push(ev);
+                });
+                if(extras.length>0){
+                  var mezclado=nuevo.slice();
+                  extras.forEach(function(ev){ mezclado.push(ev); });
+                  // Guardar mezclado sin recursividad
+                  _patchActivo=true;
+                  _origSetItem(key, JSON.stringify(mezclado));
+                  _patchActivo=false;
+                  return;
+                }
+              }
+            }catch(e){}
+          }
+          if(key==='checking_orders'){
+            try{
+              var nuevoO=JSON.parse(value||'[]');
+              if(Array.isArray(nuevoO)){
+                var guardadoO=[];
+                try{ guardadoO=JSON.parse(_origGetItem('checking_orders')||'[]'); }catch(e){ guardadoO=[]; }
+                if(!Array.isArray(guardadoO)) guardadoO=[];
+                // Mapa de tickets guardados por id -> estado validado
+                var mapaTicket={};
+                guardadoO.forEach(function(o){ (o.tickets||[]).forEach(function(t){ if(t&&t.id) mapaTicket[String(t.id)]=t; }); });
+                var mapaOrdenGuardada={};
+                guardadoO.forEach(function(o){ if(o&&(o.id||o.orderId)) mapaOrdenGuardada[String(o.id||o.orderId)]=o; });
+                var cambioO=false;
+                nuevoO.forEach(function(o){
+                  if(!o) return;
+                  var og=mapaOrdenGuardada[String(o.id||o.orderId)];
+                  // Si la guardada estaba validada, la nueva no puede bajar a pendiente
+                  if(og && _esValidadoSt(og.status) && !_esValidadoSt(o.status)){ o.status=og.status; o.qrGenerated=true; cambioO=true; }
+                  (o.tickets||[]).forEach(function(t){
+                    if(!t||!t.id) return;
+                    var tg=mapaTicket[String(t.id)];
+                    if(tg && _esValidadoSt(tg.status) && !_esValidadoSt(t.status)){ t.status='validado'; t.qrGenerated=true; cambioO=true; }
+                    // Si sigue pendiente, qrGenerated debe ser false (no marcar como generado solo por verlo)
+                    if(!_esValidadoSt(t.status) && !_esValidadoSt(o.status) && t.qrGenerated){ t.qrGenerated=false; cambioO=true; }
+                  });
+                });
+                // Union: ordenes guardadas que no estan en nuevo (ej: orden validada que React no tiene aun) se conservan
+                var nuevoIdsO={}; nuevoO.forEach(function(o){ if(o&&(o.id||o.orderId)) nuevoIdsO[String(o.id||o.orderId)]=true; });
+                var faltantes=[];
+                guardadoO.forEach(function(o){ if(o&&(o.id||o.orderId) && !nuevoIdsO[String(o.id||o.orderId)]) faltantes.push(o); });
+                // Solo resucitar faltantes si alguna esta validada (una pendiente que React no tiene es porque aun no la creo, no hay que resucitarla si es pendiente vieja que ya se borro con removeItem)
+                var faltantesValidados=faltantes.filter(function(o){ return _esValidadoSt(o.status) || (o.tickets||[]).some(function(t){ return _esValidadoSt(t.status); }); });
+                if(faltantesValidados.length>0){
+                  nuevoO=nuevoO.concat(faltantesValidados);
+                  cambioO=true;
+                }
+                if(cambioO){
+                  _patchActivo=true;
+                  _origSetItem(key, JSON.stringify(nuevoO));
+                  _patchActivo=false;
+                  return;
+                }
+              }
+            }catch(e){}
+          }
+          if(key==='checktivas'){
+            try{
+              var nuevoC=JSON.parse(value||'[]');
+              if(Array.isArray(nuevoC)){
+                var guardadoC=[];
+                try{ guardadoC=JSON.parse(_origGetItem('checktivas')||'[]'); }catch(e){ guardadoC=[]; }
+                if(!Array.isArray(guardadoC)) guardadoC=[];
+                var mapaC={}; guardadoC.forEach(function(t){ if(t&&t.id) mapaC[String(t.id)]=t; });
+                var cambioC=false;
+                nuevoC.forEach(function(t){
+                  if(!t||!t.id) return;
+                  var tg2=mapaC[String(t.id)];
+                  if(tg2 && _esValidadoSt(tg2.status) && !_esValidadoSt(t.status)){ t.status='validado'; t.qrGenerated=true; cambioC=true; }
+                  if(!_esValidadoSt(t.status) && t.qrGenerated){ t.qrGenerated=false; cambioC=true; }
+                });
+                if(cambioC){
+                  _patchActivo=true;
+                  _origSetItem(key, JSON.stringify(nuevoC));
+                  _patchActivo=false;
+                  return;
+                }
+              }
+            }catch(e){}
+          }
+        }catch(e){}
+        if(_patchActivo){ return; }
+        return _origSetItem(key, value);
+      };
+    }
+  }catch(e){ console.log('patch localStorage error', e); }
+
+  // ---------- 3) EVENTOS: subir/bajar robusto sin recargar en bucle ----------
+  function _headers(json){ var h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}; if(json) h['Content-Type']='application/json'; return h; }
+  function _ligeroEvento(ev){
+    if(!ev) return null;
+    var co={}; ['id','title','category','location','venue','address','date','dateISO','day','time','price','stock','sold','description','color','status','active','featured','createdAt'].forEach(function(f){ if(ev[f]!==undefined) co[f]=ev[f]; });
+    if(typeof co.description==='string') co.description=co.description.slice(0,500);
+    if(Array.isArray(ev.ticketCategories)) co.ticketCategories=ev.ticketCategories.map(function(tc){ return {id:tc.id,name:tc.name,price:tc.price,stock:tc.stock,desc:tc.desc,color:tc.color,badge:tc.badge}; });
+    try{
+      if(typeof ev.image==='string' && ev.image.indexOf('http')===0) co.image=ev.image;
+      else if(ev.images && ev.images[0] && typeof ev.images[0].data==='string' && ev.images[0].data.indexOf('http')===0) co.image=ev.images[0].data;
+      else if(ev.images && ev.images[0] && typeof ev.images[0].data==='string' && ev.images[0].data.indexOf('data:image')===0) co.image=ev.images[0].data;
+      else if(typeof ev.image==='string' && ev.image.indexOf('data:image')===0) co.image=ev.image;
+    }catch(e){}
+    if(Array.isArray(ev.images)) co.images=ev.images;
+    return co;
+  }
+  var _subiendoEv=false;
+  function _subirEventos(){
+    if(_subiendoEv) return;
+    try{ if(typeof navigator!=='undefined' && navigator.onLine===false) return; }catch(e){}
+    var evs=_leer('checking_events');
+    if(evs.length===0) return;
+    _subiendoEv=true;
+    var promesas=evs.map(function(ev){
+      if(!ev||!ev.id) return Promise.resolve(false);
+      var fila={id:String(ev.id), data:_ligeroEvento(ev), updated_at:new Date().toISOString()};
+      var url=SUPABASE_URL+'/rest/v1/events?on_conflict=id';
+      var h=_headers(true); h['Prefer']='resolution=merge-duplicates,return=minimal';
+      return fetch(url,{method:'POST',headers:h,body:JSON.stringify(fila)}).then(function(r){ return r.ok; }).catch(function(){ return false; });
+    });
+    Promise.all(promesas).then(function(){ _subiendoEv=false; }).catch(function(){ _subiendoEv=false; });
+  }
+  var _bajandoEv=false;
+  var _ultimaRecargaEv=0;
+  function _bajarEventos(){
+    if(_bajandoEv) return;
+    try{ if(typeof navigator!=='undefined' && navigator.onLine===false) return; }catch(e){}
+    _bajandoEv=true;
+    fetch(SUPABASE_URL+'/rest/v1/events?select=*&order=updated_at.desc&limit=200',{headers:_headers(false)}).then(function(r){ return r.ok?r.json():[]; }).catch(function(){ return []; }).then(function(rows){
+      _bajandoEv=false;
+      if(!rows||rows.length===0) return;
+      var nube=[];
+      rows.forEach(function(row){ try{ if(row&&row.data&&typeof row.data==='object'&&row.data.id) nube.push(row.data); }catch(e){} });
+      if(nube.length===0) return;
+      var local=_leer('checking_events');
+      var mapa={}; local.forEach(function(ev){ if(ev&&ev.id) mapa[String(ev.id)]=ev; });
+      var cambio=false;
+      nube.forEach(function(ev){
+        var id=String(ev.id);
+        if(!mapa[id]){ mapa[id]=ev; cambio=true; }
+        else {
+          try{ if(JSON.stringify(mapa[id])!==JSON.stringify(ev)){ mapa[id]=ev; cambio=true; } }catch(e){}
+        }
+      });
+      if(!cambio) return;
+      var mezclados=Object.keys(mapa).map(function(k){ return mapa[k]; });
+      try{ localStorage.setItem('checking_events', JSON.stringify(mezclados)); }catch(e){}
+      // Recargar UNA vez para que React tome los nuevos eventos, pero nunca en checkout/admin/modal QR
+      try{
+        var txt=String(document.body?document.body.innerText||'':'');
+        var enCheckout = txt.indexOf('PASO')!==-1 && txt.indexOf('Titulares')!==-1;
+        var enAdmin = txt.indexOf('Crear evento')!==-1 && txt.indexOf('Sube desde tu celular')!==-1;
+        var modalQR=document.getElementById('checktiva-qr-modal');
+        var qrAbierto=modalQR && modalQR.style.display!=='none';
+        var ahora=Date.now();
+        if(!enCheckout && !enAdmin && !qrAbierto && (ahora-_ultimaRecargaEv>25000)){
+          _ultimaRecargaEv=ahora;
+          setTimeout(function(){ try{ location.reload(); }catch(e){} }, 900);
+        }
+      }catch(e){}
+    });
+  }
+  setTimeout(_bajarEventos, 1500);
+  setInterval(_bajarEventos, 6000);
+  setInterval(_subirEventos, 8000);
+  document.addEventListener('click', function(e){
+    try{
+      var b=e.target && e.target.closest ? e.target.closest('button') : null;
+      if(!b) return;
+      var tx=String(b.textContent||'');
+      if(tx.indexOf('Crear')!==-1 || tx.indexOf('Guardar')!==-1 || tx.indexOf('Publicar')!==-1 || tx.indexOf('Crear evento')!==-1){ setTimeout(_subirEventos, 800); setTimeout(_bajarEventos, 2500); }
+    }catch(err){}
+  }, true);
+
+  // ---------- 4) GUARDIAN FINAL QR: oculto si pendiente, quieto si validado ----------
+  var _qrFijo = {ticketId:'', src:''};
+  var _restaurando=false;
+  function _getTicket(ticketId){
+    try{
+      var orders=_leer('checking_orders');
+      for(var i=0;i<orders.length;i++){ var o=orders[i]||{}; var ts=o.tickets||[]; for(var j=0;j<ts.length;j++){ if(ts[j]&&ts[j].id===ticketId) return {ticket:ts[j], order:o}; } }
+      var cts=_leer('checktivas');
+      for(var k=0;k<cts.length;k++){ if(cts[k]&&cts[k].id===ticketId) return {ticket:cts[k], order:null}; }
+      if(window.currentTicket && window.currentTicket.ticket && window.currentTicket.ticket.id===ticketId) return {ticket:window.currentTicket.ticket, order:window.currentTicket.order||null};
+    }catch(e){}
+    return {ticket:null, order:null};
+  }
+  function _asegurarPending(){
+    var ph=document.getElementById('checktiva-qr-pending');
+    var imgEl=document.getElementById('checktiva-qr-image');
+    if(!imgEl) return null;
+    if(!ph){
+      ph=document.createElement('div');
+      ph.id='checktiva-qr-pending';
+      ph.style.cssText='width:230px;height:230px;background:#111;border:2px dashed rgba(139,105,20,0.5);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;margin:0 auto;';
+      try{ imgEl.parentNode.insertBefore(ph, imgEl); }catch(e){ return null; }
+    }
+    return ph;
+  }
+  function _ocultarQRFinal(){
+    try{
+      var imgEl=document.getElementById('checktiva-qr-image');
+      var fb=document.getElementById('checktiva-qr-fallback-code');
+      var dl=document.getElementById('checktiva-qr-download');
+      var sh=document.getElementById('checktiva-qr-share');
+      var pdf=document.getElementById('checktiva-qr-pdf-boleta');
+      var pdfTarjeta=document.getElementById('checktiva-qr-pdf-tarjeta');
+      var pdfAbajo1=document.getElementById('checktiva-qr-abajo-boleta');
+      var pdfAbajo2=document.getElementById('checktiva-qr-abajo-tarjeta');
+      if(imgEl){
+        try{ if(imgEl.src && imgEl.src!=='') imgEl.removeAttribute('src'); }catch(e){}
+        try{ imgEl.src=''; }catch(e){}
+        imgEl.style.display='none'; imgEl.style.visibility='hidden'; imgEl.style.opacity='0';
+        imgEl.setAttribute('data-qr-oculto','1');
+        imgEl.removeAttribute('data-qr-fijo');
+      }
+      _qrFijo={ticketId:'', src:''};
+      if(fb){ fb.style.display='none'; }
+      var ph=_asegurarPending();
+      if(ph){
+        ph.style.display='flex'; ph.style.visibility='visible'; ph.style.opacity='1';
+        ph.innerHTML='<div style="font-size:42px;margin-bottom:10px">🔒</div><div style="font-weight:900;color:#FFD700;font-size:13px">CÓDIGO OCULTO</div><div style="font-size:11px;color:white;margin-top:8px;line-height:1.5">Tu boleta ya llegó, pero el código está oculto.<br>El administrador debe validar tu pago para mostrarlo.</div><div style="margin-top:12px;background:rgba(255,193,7,0.15);border:1px solid rgba(255,193,7,0.35);color:#FFC107;padding:6px 12px;border-radius:999px;font-size:10px;font-weight:800">⏳ PENDIENTE DE VALIDACIÓN</div>';
+      }
+      // Ocultar cualquier otro QR dentro del modal (imagenes qrserver / data:image / canvas)
+      try{
+        var modal=document.getElementById('checktiva-qr-modal');
+        if(modal){
+          var imgs=modal.querySelectorAll('img');
+          for(var i=0;i<imgs.length;i++){ var im=imgs[i]; if(im.id==='checktiva-qr-image') continue; var src=im.src||''; if(src.indexOf('qrserver')!==-1 || src.indexOf('quickchart')!==-1 || src.indexOf('data:image')!==-1){ im.style.display='none'; im.style.visibility='hidden'; } }
+          var cvs=modal.querySelectorAll('canvas');
+          for(var c2=0;c2<cvs.length;c2++){ if(cvs[c2].width>=150 && cvs[c2].width<=700){ cvs[c2].style.display='none'; cvs[c2].style.visibility='hidden'; } }
+        }
+      }catch(e){}
+      if(dl) dl.style.display='none';
+      if(sh) sh.style.display='none';
+      if(pdf) pdf.style.display='none';
+      if(pdfAbajo1) pdfAbajo1.style.display='none';
+      // La tarjetica es el certificado de compra, se deja visible pero sin QR: el PDF de tarjetica ya revisa display del QR
+      if(pdfTarjeta) pdfTarjeta.style.display='';
+      if(pdfAbajo2) pdfAbajo2.style.display='';
+      // El pill de id debe decir PENDIENTE, no VALIDADO
+      try{
+        var idEl=document.getElementById('checktiva-qr-id');
+        if(idEl){
+          var base=(idEl.textContent||'').split('•')[0].trim();
+          if(base){ idEl.textContent=base+' • PENDIENTE'; idEl.style.background='rgba(255,193,7,0.15)'; idEl.style.borderColor='rgba(255,193,7,0.35)'; idEl.style.color='#FFC107'; }
+        }
+      }catch(e){}
+    }catch(e){}
+  }
+  function _mostrarQRFijo(){
+    try{
+      var imgEl=document.getElementById('checktiva-qr-image');
+      var ph=document.getElementById('checktiva-qr-pending');
+      var fb=document.getElementById('checktiva-qr-fallback-code');
+      var dl=document.getElementById('checktiva-qr-download');
+      var sh=document.getElementById('checktiva-qr-share');
+      var pdf=document.getElementById('checktiva-qr-pdf-boleta');
+      var pdfAbajo1=document.getElementById('checktiva-qr-abajo-boleta');
+      if(ph){ ph.style.display='none'; }
+      if(fb){ fb.style.display='none'; }
+      if(imgEl){
+        // Si ya tenemos un QR fijo para este ticket, restaurarlo si alguien lo cambio (esto quita el parpadeo)
+        var idEl2=document.getElementById('checktiva-qr-id');
+        var tid='';
+        if(idEl2) tid=(idEl2.textContent||'').split('•')[0].trim();
+        if(!tid && window.currentTicket && window.currentTicket.ticket) tid=window.currentTicket.ticket.id||'';
+        if(_qrFijo.ticketId && _qrFijo.ticketId===tid && _qrFijo.src && imgEl.src!==_qrFijo.src && !_restaurando){
+          _restaurando=true;
+          try{ imgEl.src=_qrFijo.src; }catch(e){}
+          setTimeout(function(){ _restaurando=false; }, 120);
+        }
+        // Si hay QR visible y aun no lo fijamos, fijarlo ahora (una sola vez, quieto)
+        if(imgEl.src && imgEl.src!=='' && (!_qrFijo.ticketId || _qrFijo.ticketId!==tid)){
+          _qrFijo={ticketId:tid, src:imgEl.src};
+          imgEl.setAttribute('data-qr-fijo', tid);
+          try{ imgEl.onerror=null; }catch(e){}
+        }
+        if(imgEl.src && imgEl.src!==''){
+          imgEl.style.display='block'; imgEl.style.visibility='visible'; imgEl.style.opacity='1';
+          imgEl.removeAttribute('data-qr-oculto');
+        }
+      }
+      if(dl) dl.style.display='';
+      if(sh) sh.style.display='';
+      if(pdf) pdf.style.display='';
+      if(pdfAbajo1) pdfAbajo1.style.display='';
+      try{
+        var idEl=document.getElementById('checktiva-qr-id');
+        if(idEl){
+          var txt=idEl.textContent||'';
+          if(txt.indexOf('PENDIENTE')!==-1){
+            var base2=txt.split('•')[0].trim();
+            idEl.textContent=base2+' • VALIDADO';
+            idEl.style.background='rgba(139,105,20,0.15)'; idEl.style.borderColor='rgba(139,105,20,0.3)'; idEl.style.color='#8B6914';
+          }
+        }
+      }catch(e){}
+    }catch(e){}
+  }
+  function _aplicarReglaFinal(ticketId){
+    try{
+      var modal=document.getElementById('checktiva-qr-modal');
+      if(!modal) return;
+      if(modal.style.display==='none') { _qrFijo={ticketId:'', src:''}; return; }
+      var id=ticketId||'';
+      if(!id){
+        try{ var idEl=document.getElementById('checktiva-qr-id'); if(idEl) id=(idEl.textContent||'').split('•')[0].trim(); }catch(e){}
+      }
+      if(!id){
+        try{ if(window.currentTicket && window.currentTicket.ticket) id=window.currentTicket.ticket.id||''; }catch(e){}
+      }
+      if(!id) return;
+      var d=_getTicket(id);
+      var validado=_esValidadoTicket(d.ticket, d.order);
+      if(!validado){ _ocultarQRFinal(); }
+      else { _mostrarQRFijo(); }
+    }catch(e){}
+  }
+  // Intervalo guardian: revisa cada 500ms, pero sin re-generar el QR (solo muestra/oculta y restaura el fijo)
+  setInterval(function(){ try{ _aplicarReglaFinal(''); }catch(e){} }, 500);
+  // Observador: si algun script viejo cambia el src o el display, volver a aplicar la regla una vez, con debounce
+  try{
+    var _timerObs=null;
+    var _obs=new MutationObserver(function(){
+      if(_restaurando) return;
+      if(_timerObs) clearTimeout(_timerObs);
+      _timerObs=setTimeout(function(){ try{ _aplicarReglaFinal(''); }catch(e){} }, 180);
+    });
+    setTimeout(function(){ try{ _obs.observe(document.body, {childList:true, subtree:true, attributes:true, attributeFilter:['style','src']}); }catch(e){} }, 1200);
+  }catch(e){}
+  // Envolver showQRModal AL FINAL (despues de todos los otros fixes) para que nuestra regla gane
+  function _envolverFinal(){
+    try{
+      var base=window.showQRModal;
+      if(!base || base._qrOcultoQuietoFinal) return;
+      var wrapped=function(ticketId){
+        try{ base(ticketId); }catch(e){}
+        // Dejar que los scripts viejos pongan su QR, y luego aplicar la regla final varias veces, cada vez mas tarde
+        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 60);
+        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 300);
+        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 800);
+        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 1500);
+        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 2500);
+        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 4200);
+        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 6000);
+      };
+      wrapped._qrOcultoQuietoFinal=true;
+      window.showQRModal=wrapped;
+      window.checktivaShowQR=wrapped;
+    }catch(e){}
+  }
+  setTimeout(_envolverFinal, 7000);
+  setTimeout(_envolverFinal, 9000);
+  // Bloquear descarga/compartir cuando esta pendiente (el QR esta oculto, no se puede descargar)
+  document.addEventListener('click', function(e){
+    try{
+      var btn=e.target && e.target.closest ? e.target.closest('#checktiva-qr-download, #checktiva-qr-share, #checktiva-qr-pdf-boleta') : null;
+      if(!btn) return;
+      var imgEl=document.getElementById('checktiva-qr-image');
+      if(imgEl && imgEl.getAttribute('data-qr-oculto')==='1'){
+        e.preventDefault(); e.stopPropagation();
+        var toast=document.createElement('div');
+        toast.textContent='🔒 Código oculto hasta que el admin valide tu pago';
+        toast.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#111;color:#fff;padding:14px 20px;border-radius:16px;border:1.5px solid #8B6914;z-index:999999;font-weight:800;font-size:13px;text-align:center;max-width:88vw;';
+        document.body.appendChild(toast);
+        setTimeout(function(){ try{ toast.remove(); }catch(e2){} }, 2200);
+        return false;
+      }
+    }catch(e2){}
+  }, true);
+  // Cuando el admin valida, limpiar datos para que el QR aparezca quieto de una vez
+  document.addEventListener('click', function(e){
+    try{
+      var b=e.target && e.target.closest ? e.target.closest('button') : null;
+      if(!b) return;
+      var tx=String(b.textContent||'');
+      if(tx.indexOf('Validar')!==-1){ setTimeout(_limpiarDatos, 800); setTimeout(_limpiarDatos, 1800); }
+    }catch(err){}
+  }, true);
+  console.log('✅ FIX FINAL listo: QR oculto hasta validar, QR quieto sin corto, eventos con merge');
+})();
+</script>
+
+<!-- FIX: Registro + Registros de cuentas en tiempo real -->
+<script id="checktiva-fix-registro-tiempo-real">
+(function(){
+  if(window.__checktivaRegistroTiempoReal) return;
+  window.__checktivaRegistroTiempoReal = true;
+  console.log('👥 FIX Registro tiempo real activo');
+  var NS='checktiva-netlify-2026-777';
+  var URL_CUENTAS='https://mantledb.sh/v2/'+NS+'/cuentas';
+  var CLAVES_CUENTAS=['checking_users','checking_all_users','checktiva_cuentas_backup','checktiva_cuentas','checking_all_accounts'];
+  function _normEmail(e){ return String(e==null?'':e).trim().toLowerCase(); }
+  function _normPhone(ph){ return String(ph==null?'':ph).replace(/[^0-9+]/g,''); }
+  function _leer(k){ try{ var r=localStorage.getItem(k); if(!r) return []; var a=JSON.parse(r); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function _leerCuentasTodas(){
+    var listas=[];
+    for(var i=0;i<CLAVES_CUENTAS.length;i++) listas.push(_leer(CLAVES_CUENTAS[i]));
+    try{ var ses=JSON.parse(localStorage.getItem('checking_user')||'null'); if(ses&&(ses.email||ses.phone)) listas.push([ses]); }catch(e){}
+    return _fusionarCuentas(listas);
+  }
+  function _fusionarCuentas(listas){
+    var porClave={}; var orden=[];
+    function _clave(u){
+      var em=_normEmail(u.email||u.correo);
+      var ph=_normPhone(u.phone||u.telefono);
+      if(em) return 'email:'+em;
+      if(ph) return 'tel:'+ph;
+      if(u.id) return 'id:'+String(u.id);
+      return '';
+    }
+    function _poner(u){
+      if(!u||typeof u!=='object') return;
+      var clave=_clave(u); if(!clave) return;
+      var ex=porClave[clave];
+      if(!ex){
+        var copia={}; for(var k in u){ if(Object.prototype.hasOwnProperty.call(u,k)) copia[k]=u[k]; }
+        var em=_normEmail(u.email||u.correo); if(em) copia.email=em;
+        var ph=_normPhone(u.phone||u.telefono); if(ph&&!copia.phone) copia.phone=ph;
+        if(!copia.createdAt) copia.createdAt=new Date().toISOString();
+        porClave[clave]=copia; orden.push(copia);
+      } else {
+        for(var k2 in u){
+          if(!Object.prototype.hasOwnProperty.call(u,k2)) continue;
+          if(k2==='id') continue;
+          if(k2==='pass'||k2==='password'){
+            if((!ex.pass||ex.pass==='__google__')&&u[k2]&&u[k2]!=='__google__') ex.pass=u[k2];
+            continue;
+          }
+          if(k2==='createdAt'){
+            if(u.createdAt&&(!ex.createdAt||String(u.createdAt)<String(ex.createdAt))) ex.createdAt=u.createdAt;
+            continue;
+          }
+          if(k2==='lastLogin'){
+            if(u.lastLogin&&(!ex.lastLogin||String(u.lastLogin)>String(ex.lastLogin))) ex.lastLogin=u.lastLogin;
+            continue;
+          }
+          if((ex[k2]==null||ex[k2]==='')&&u[k2]!=null&&u[k2]!=='') ex[k2]=u[k2];
+        }
+        if(u.provider&&!ex.provider) ex.provider=u.provider;
+        if(u.google) ex.google=true;
+        var em2=_normEmail(u.email||u.correo); if(em2&&!ex.email) ex.email=em2;
+        var ph2=_normPhone(u.phone||u.telefono); if(ph2&&!ex.phone) ex.phone=ph2;
+      }
+    }
+    for(var i=0;i<listas.length;i++){ var arr=listas[i]; if(!Array.isArray(arr)) continue; for(var j=0;j<arr.length;j++) _poner(arr[j]); }
+    return orden;
+  }
+
+  // ---------- PARCHE setItem para cuentas: union, nunca borrar ----------
+  var _prevSetItem = localStorage.setItem.bind(localStorage);
+  var _escribiendo = false;
+  var _timerSubida = null;
+  function _programarSubida(){ if(_timerSubida) clearTimeout(_timerSubida); _timerSubida=setTimeout(_subirCuentasAhora, 500); }
+  localStorage.setItem = function(key, value){
+    if(_escribiendo) return _prevSetItem(key, value);
+    try{
+      if(CLAVES_CUENTAS.indexOf(key)!==-1){
+        var entrante=[];
+        try{ var p=JSON.parse(String(value||'[]')); if(Array.isArray(p)) entrante=p; }catch(e){ entrante=[]; }
+        var actuales=_leerCuentasTodas();
+        var fusionada=_fusionarCuentas([actuales, entrante]);
+        // Si no hay cambio real, dejar que siga el flujo normal para no hacer bucle
+        if(JSON.stringify(fusionada)===JSON.stringify(actuales) && JSON.stringify(entrante)===JSON.stringify(actuales)){
+          return _prevSetItem(key, value);
+        }
+        _escribiendo=true;
+        try{ for(var i=0;i<CLAVES_CUENTAS.length;i++){ try{ _prevSetItem(CLAVES_CUENTAS[i], JSON.stringify(fusionada)); }catch(e2){} } }finally{ _escribiendo=false; }
+        _programarSubida();
+        return;
+      }
+      if(key==='checking_user'){
+        var r=_prevSetItem(key, value);
+        try{
+          var ses=JSON.parse(String(value||'null'));
+          if(ses&&(ses.email||ses.phone)){
+            var cur=_leerCuentasTodas();
+            var existe=false;
+            for(var k=0;k<cur.length;k++){ if(_normEmail(cur[k].email||cur[k].correo)===_normEmail(ses.email||ses.correo) && _normEmail(ses.email||ses.correo)!==''){ existe=true; break; } if(ses.phone&&_normPhone(cur[k].phone||cur[k].telefono)===_normPhone(ses.phone)&&_normPhone(ses.phone)!==''){ existe=true; break; } }
+            if(!existe){
+              var f2=_fusionarCuentas([cur,[ses]]);
+              _escribiendo=true;
+              try{ for(var m=0;m<CLAVES_CUENTAS.length;m++){ try{ _prevSetItem(CLAVES_CUENTAS[m], JSON.stringify(f2)); }catch(e3){} } }finally{ _escribiendo=false; }
+              _programarSubida();
+            }
+          }
+        }catch(e4){}
+        return r;
+      }
+    }catch(e5){}
+    return _prevSetItem(key, value);
+  };
+
+  // ---------- SUBIDA INMEDIATA a Mantle ----------
+  var _subiendo=false;
+  function _subirCuentasAhora(){
+    if(_subiendo) return;
+    var cuentas=_leerCuentasTodas();
+    if(cuentas.length===0) return;
+    try{ if(typeof window.__checktivaSyncTiempoRealSubirCuentas==='function') window.__checktivaSyncTiempoRealSubirCuentas(); }catch(e){}
+    try{ if(typeof window.__checktivaSincronizarCuentas==='function') window.__checktivaSincronizarCuentas(); }catch(e){}
+    _subiendo=true;
+    fetch(URL_CUENTAS,{method:'GET'}).then(function(r){ return r.ok?r.json():{cuentas:[]}; }).catch(function(){ return {cuentas:[]}; }).then(function(data){
+      var nube=(data&&data.cuentas)||[];
+      if(!Array.isArray(nube)) nube=[];
+      var mezclado=_fusionarCuentas([nube, cuentas]);
+      // Si la nube ya tiene todo, no subir de nuevo
+      var yaTiene=true;
+      try{ yaTiene = JSON.stringify(_fusionarCuentas([nube]))===JSON.stringify(_fusionarCuentas([mezclado])); }catch(e){}
+      if(yaTiene && nube.length>=mezclado.length){ _subiendo=false; return; }
+      return fetch(URL_CUENTAS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({updatedAt:Date.now(), cuentas:mezclado})}).then(function(){ _subiendo=false; }).catch(function(){ _subiendo=false; });
+    }).catch(function(){ _subiendo=false; });
+  }
+  function _bajarCuentasAhora(){
+    fetch(URL_CUENTAS,{method:'GET'}).then(function(r){ return r.ok?r.json():null; }).catch(function(){ return null; }).then(function(data){
+      if(!data||!Array.isArray(data.cuentas)) return;
+      var nube=data.cuentas; if(nube.length===0) return;
+      var local=_leerCuentasTodas();
+      var mezclado=_fusionarCuentas([local, nube]);
+      if(JSON.stringify(mezclado)!==JSON.stringify(local)){
+        _escribiendo=true;
+        try{ for(var i=0;i<CLAVES_CUENTAS.length;i++){ try{ _prevSetItem(CLAVES_CUENTAS[i], JSON.stringify(mezclado)); }catch(e){} } }finally{ _escribiendo=false; }
+      }
+    });
+  }
+  setTimeout(_bajarCuentasAhora, 800);
+  setInterval(_bajarCuentasAhora, 3000);
+  window.addEventListener('storage', function(e){ if(e&&(CLAVES_CUENTAS.indexOf(e.key)!==-1||e.key==='checking_user')) setTimeout(_bajarCuentasAhora, 300); });
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) setTimeout(_bajarCuentasAhora, 300); });
+  document.addEventListener('click', function(e){
+    try{
+      var b=e.target&&e.target.closest?e.target.closest('button'):null;
+      if(!b) return;
+      var tx=String(b.textContent||'').trim();
+      if(tx.indexOf('Crear cuenta')!==-1||tx==='Crear'||tx.indexOf('Registrar')!==-1||tx.indexOf('Continuar')!==-1||tx.indexOf('Crear Cuenta')!==-1||tx.indexOf('Registrarse')!==-1){
+        setTimeout(_subirCuentasAhora, 800); setTimeout(_bajarCuentasAhora, 1600);
+      }
+    }catch(err){}
+  }, true);
+  // Tambien cuando React escribe cuentas (form submit), el parche ya programa la subida. Por si acaso, vigilar cambios locales cada 2s
+  var _ultimoLocalCuentas='';
+  try{ _ultimoLocalCuentas=JSON.stringify(_leerCuentasTodas()); }catch(e){}
+  setInterval(function(){
+    try{
+      var act=JSON.stringify(_leerCuentasTodas());
+      if(act!==_ultimoLocalCuentas){ _ultimoLocalCuentas=act; _programarSubida(); }
+    }catch(e){}
+  }, 2000);
+
+  // ---------- REFRESCO EN VIVO DE LOS DOS PANELES ----------
+  function _esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function _fmtFecha(v){ if(!v) return '-'; try{ return new Date(v).toLocaleString('es-CO'); }catch(e){ return String(v); } }
+  function _refrescarCuentasPanel(){
+    try{
+      var body=document.getElementById('checktiva-cuentas-body');
+      if(!body) return;
+      var cuentas=_leerCuentasTodas();
+      var inp=document.getElementById('checktiva-cuentas-buscar');
+      var f=inp?String(inp.value||'').trim().toLowerCase():'';
+      var lista=cuentas.filter(function(u){ if(!f) return true; return String((u.name||'')+' '+(u.email||'')+' '+(u.phone||'')).toLowerCase().indexOf(f)!==-1; });
+      var totalEl=document.getElementById('checktiva-cuentas-total');
+      if(totalEl) totalEl.textContent=String(cuentas.length);
+      var firma=cuentas.length+'|'+lista.length+'|'+f+'|'+cuentas.map(function(u){ return u.email||u.phone||''; }).join(',');
+      if(body.getAttribute('data-firma-rt')===firma) return;
+      var h='<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr><th style="background:#111;color:#fff;padding:8px;text-align:left;">Nombre</th><th style="background:#111;color:#fff;padding:8px;text-align:left;">Email (unico)</th><th style="background:#111;color:#fff;padding:8px;text-align:left;">Telefono</th><th style="background:#111;color:#fff;padding:8px;text-align:left;">Creada</th><th style="background:#111;color:#fff;padding:8px;text-align:left;">Ultimo ingreso</th></tr></thead><tbody>';
+      lista.forEach(function(u){
+        h+='<tr><td style="padding:7px;border:1px solid #222;">'+_esc(u.name||'-')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(u.email||'-')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(u.phone||'-')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(_fmtFecha(u.createdAt))+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(_fmtFecha(u.lastLogin))+'</td></tr>';
+      });
+      if(lista.length===0) h+='<tr><td colspan="5" style="padding:12px;text-align:center;color:#777;">Sin cuentas todavia. Cuando un usuario cree su cuenta, aparece aqui y queda guardada.</td></tr>';
+      h+='</tbody></table>';
+      var sc=body.scrollTop;
+      body.innerHTML=h;
+      body.scrollTop=sc;
+      body.setAttribute('data-firma-rt', firma);
+    }catch(e){}
+  }
+  function _construirDatosRegistros(){
+    var cuentas=_leerCuentasTodas();
+    var orders=_leer('checking_orders');
+    var cts=_leer('checktivas');
+    var events=_leer('checking_events');
+    var entradas=[];
+    orders.forEach(function(o){
+      (o.tickets||[]).forEach(function(t){
+        entradas.push({id:t.id, titular:((t.attendee&&t.attendee.name)||(o.buyer&&o.buyer.name)||t.titular||''), email:((t.attendee&&t.attendee.email)||(o.buyer&&o.buyer.email)||''), telefono:((t.attendee&&t.attendee.phone)||(o.buyer&&o.buyer.phone)||''), evento:t.eventTitle||o.eventTitle||'', categoria:t.ticketCategory||t.category||t.localidad||'', precio:t.price||0, estado:t.status||o.status||'', orden:o.id||'', fecha:t.createdAt||o.createdAt||''});
+      });
+    });
+    var ids={}; entradas.forEach(function(e){ ids[e.id]=true; });
+    cts.forEach(function(t){
+      if(!t||!t.id||ids[t.id]) return;
+      entradas.push({id:t.id, titular:((t.attendee&&t.attendee.name)||t.titular||''), email:((t.attendee&&t.attendee.email)||t.email||''), telefono:((t.attendee&&t.attendee.phone)||t.phone||''), evento:t.eventTitle||'', categoria:t.ticketCategory||t.category||'', precio:t.price||0, estado:t.status||'', orden:t.orderId||'', fecha:t.createdAt||''});
+    });
+    return {entradas:entradas, orders:orders, users:cuentas, events:events};
+  }
+  function _refrescarRegistrosPanel(){
+    try{
+      var body=document.getElementById('checktiva-registros-body');
+      if(!body) return;
+      var overlay=document.getElementById('checktiva-registros-overlay');
+      if(!overlay) return;
+      var btns=overlay.querySelectorAll('.reg-tab-btn');
+      var tabActual='todo';
+      for(var i=0;i<btns.length;i++){
+        var bg=String(btns[i].style.background||'');
+        var col=String(btns[i].style.color||'');
+        if(bg.indexOf('139')!==-1||bg==='#8B6914'||bg==='rgb(139, 105, 20)'||col==='rgb(0, 0, 0)'||col==='#000'){ tabActual=btns[i].getAttribute('data-reg-tab')||'todo'; break; }
+      }
+      var inp=document.getElementById('checktiva-registros-buscar');
+      var filtro=inp?String(inp.value||'').toLowerCase().trim():'';
+      var d=_construirDatosRegistros();
+      var firma=d.entradas.length+'|'+d.orders.length+'|'+d.users.length+'|'+d.events.length+'|'+tabActual+'|'+filtro+'|'+d.entradas.map(function(e){ return e.id+':'+e.estado; }).join(',');
+      if(body.getAttribute('data-firma-rt')===firma) return;
+      function _tabla(headers, filasHtml){
+        var h='<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr>';
+        headers.forEach(function(x){ h+='<th style="text-align:left;padding:8px;border:1px solid #222;background:#1a1a1a;">'+_esc(x)+'</th>'; });
+        h+='</tr></thead><tbody>'+filasHtml+'</tbody></table>';
+        return h;
+      }
+      var html='';
+      if(tabActual==='todo'||tabActual==='entradas'){
+        var ent=d.entradas.filter(function(e){ if(!filtro) return true; return String((e.titular||'')+' '+(e.email||'')+' '+(e.evento||'')+' '+(e.categoria||'')).toLowerCase().indexOf(filtro)!==-1; });
+        var filas='';
+        ent.forEach(function(e){
+          filas+='<tr><td style="padding:7px;border:1px solid #222;">'+_esc(e.id)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.titular)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.email)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.telefono)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.evento)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.categoria)+'</td><td style="padding:7px;border:1px solid #222;">$'+Number(e.precio||0).toLocaleString('es-CO')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.estado)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.orden)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.fecha)+'</td></tr>';
+        });
+        if(ent.length===0) filas='<tr><td colspan="10" style="padding:12px;text-align:center;color:#777;">Sin registros todavia</td></tr>';
+        html+='<div style="font-size:13px;font-weight:900;color:#8B6914;margin:14px 0 8px;">Registro de entradas</div>'+_tabla(['ID','Titular','Email','Telefono','Evento','Categoria','Precio','Estado','Orden','Fecha'], filas);
+      }
+      if(tabActual==='todo'||tabActual==='ventas'){
+        var ven=d.orders.filter(function(o){ if(!filtro) return true; var b=o.buyer||{}; return String((b.name||'')+' '+(b.email||'')+' '+(o.id||'')).toLowerCase().indexOf(filtro)!==-1; });
+        var fven='';
+        ven.forEach(function(o){
+          var b=o.buyer||{};
+          fven+='<tr><td style="padding:7px;border:1px solid #222;">'+_esc(o.id||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(b.name||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(b.email||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(b.phone||'')+'</td><td style="padding:7px;border:1px solid #222;">$'+Number(o.total||0).toLocaleString('es-CO')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(o.payMethod||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(o.status||'')+'</td><td style="padding:7px;border:1px solid #222;">'+((o.tickets||[]).length)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(o.createdAt||'')+'</td></tr>';
+        });
+        if(ven.length===0) fven='<tr><td colspan="9" style="padding:12px;text-align:center;color:#777;">Sin ventas</td></tr>';
+        html+='<div style="font-size:13px;font-weight:900;color:#8B6914;margin:14px 0 8px;">Registro de ventas</div>'+_tabla(['Orden','Comprador','Email','Telefono','Total','Metodo','Estado','Tickets','Fecha'], fven);
+      }
+      if(tabActual==='todo'||tabActual==='usuarios'){
+        var usu=d.users.filter(function(u){ if(!filtro) return true; return String((u.name||'')+' '+(u.email||'')+' '+(u.phone||'')).toLowerCase().indexOf(filtro)!==-1; });
+        var fusu='';
+        usu.forEach(function(u){
+          fusu+='<tr><td style="padding:7px;border:1px solid #222;">'+_esc(u.name||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(u.email||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(u.phone||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(u.createdAt||u.fecha||'')+'</td></tr>';
+        });
+        if(usu.length===0) fusu='<tr><td colspan="4" style="padding:12px;text-align:center;color:#777;">Sin usuarios</td></tr>';
+        html+='<div style="font-size:13px;font-weight:900;color:#8B6914;margin:14px 0 8px;">Registro de usuarios</div>'+_tabla(['Nombre','Email','Telefono','Fecha registro'], fusu);
+      }
+      if(tabActual==='todo'||tabActual==='eventos'){
+        var eve=d.events.filter(function(ev){ if(!filtro) return true; return String((ev.title||'')+' '+(ev.location||'')+' '+(ev.venue||'')).toLowerCase().indexOf(filtro)!==-1; });
+        var feve='';
+        eve.forEach(function(ev){
+          feve+='<tr><td style="padding:7px;border:1px solid #222;">'+_esc(ev.title||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(ev.venue||ev.location||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(ev.location||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(ev.date||ev.dateISO||'')+'</td><td style="padding:7px;border:1px solid #222;">$'+Number(ev.price||0).toLocaleString('es-CO')+'</td></tr>';
+        });
+        if(eve.length===0) feve='<tr><td colspan="5" style="padding:12px;text-align:center;color:#777;">Sin eventos</td></tr>';
+        html+='<div style="font-size:13px;font-weight:900;color:#8B6914;margin:14px 0 8px;">Registro de eventos</div>'+_tabla(['Titulo','Lugar','Ciudad','Fecha','Precio'], feve);
+      }
+      // Actualizar contadores del encabezado (los primeros 7 <b> del overlay)
+      try{
+        var bs=overlay.querySelectorAll('b');
+        var totalVendido=d.orders.reduce(function(a,o){ return a+Number(o.total||0); },0);
+        var validados=d.entradas.filter(function(e){ var s=String(e.estado||'').toLowerCase(); return s==='validado'||s==='pagado_confirmado'||s==='valido'||s==='activo'; }).length;
+        var pendientes=Math.max(0, d.entradas.length-validados);
+        var vals=[d.entradas.length, d.orders.length, '$'+totalVendido.toLocaleString('es-CO'), validados, pendientes, d.users.length, d.events.length];
+        for(var k=0;k<7&&k<bs.length;k++){ bs[k].textContent=vals[k]; }
+      }catch(e2){}
+      var sc2=body.scrollTop;
+      body.innerHTML=html;
+      body.scrollTop=sc2;
+      body.setAttribute('data-firma-rt', firma);
+    }catch(e){}
+  }
+  setInterval(function(){ _refrescarCuentasPanel(); _refrescarRegistrosPanel(); }, 2000);
+  console.log('✅ FIX Registro tiempo real listo: cuentas con union, subida inmediata y paneles en vivo');
+})();
+</script>
+
+<!-- UNICO ARREGLO AGREGADO A ESTA VERSION: lector QR (max 2 lecturas VALIDADO, 3ra YA USADO, camara fija, boton Leer otro codigo). No se toco nada mas. -->
+<script id="checktiva-fix-lector-qr-3ra">
+(function(){
+  if(window.__checktivaFixLectorQR3ra) return;
+  window.__checktivaFixLectorQR3ra = true;
+  console.log('📷 FIX Lector QR: max 2 lecturas, 3ra YA USADO + camara fija');
+  var KEY_SCAN = 'checktiva_scan_counts';
+  function _leerMapa(){
+    try{ var r=localStorage.getItem(KEY_SCAN); if(!r) return {}; var o=JSON.parse(r); return (o&&typeof o==='object')?o:{}; }catch(e){ return {}; }
+  }
+  function _leerLista(k){ try{ var r=localStorage.getItem(k); if(!r) return []; var a=JSON.parse(r); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function _ahora(){ return new Date().toISOString(); }
+  // Aprender conteos que ya existen en checktivas / orders (por si ya se leyo 1 o 2 veces antes de este arreglo)
+  try{
+    var mapa0=_leerMapa(); var cambio0=false;
+    _leerLista('checktivas').forEach(function(t){
+      if(!t||!t.id) return;
+      var cnt=Math.max(Number(t.scanCount||0), (t.used||t.status==='usado'||t.status==='used')?1:0);
+      if(cnt>0 && (!mapa0[t.id] || Number(mapa0[t.id].count||0)<cnt)){ mapa0[t.id]={count:cnt, usedAt:t.usedAt||_ahora(), lastScanAt:t.lastScanAt||_ahora()}; cambio0=true; }
+    });
+    _leerLista('checking_orders').forEach(function(o){ (o.tickets||[]).forEach(function(t){
+      if(!t||!t.id) return;
+      var cnt2=Math.max(Number(t.scanCount||0), (t.used||t.status==='usado'||t.status==='used')?1:0);
+      if(cnt2>0 && (!mapa0[t.id] || Number(mapa0[t.id].count||0)<cnt2)){ mapa0[t.id]={count:cnt2, usedAt:t.usedAt||_ahora(), lastScanAt:t.lastScanAt||_ahora()}; cambio0=true; }
+    }); });
+    if(cambio0){ try{ localStorage.setItem(KEY_SCAN, JSON.stringify(mapa0)); }catch(e){} }
+  }catch(e){}
+  // ---- Parche setItem: NUNCA dejar que un guardado viejo baje el conteo ni devuelva un YA USADO a validado ----
+  var _prevSetItem = localStorage.setItem.bind(localStorage);
+  var _escribiendo=false;
+  function _forzarTicket(t, mapa){
+    if(!t||!t.id) return false;
+    var auth=Math.max(Number(t.scanCount||0), mapa[t.id]?Number(mapa[t.id].count||0):0);
+    if((t.used||t.status==='usado'||t.status==='used') && auth===0) auth=1;
+    if(auth<=0) return false;
+    var cambio=false;
+    if(!mapa[t.id] || Number(mapa[t.id].count||0)<auth){
+      mapa[t.id]={count:auth, usedAt:t.usedAt|| (mapa[t.id]&&mapa[t.id].usedAt) || _ahora(), lastScanAt:t.lastScanAt||_ahora()};
+      cambio=true;
+    }
+    var debeScan = auth>=2 ? 2 : 1;
+    if(Number(t.scanCount||0)!==debeScan){ t.scanCount=debeScan; cambio=true; }
+    if(t.status!=='usado'){ t.status='usado'; cambio=true; }
+    if(!t.used){ t.used=true; cambio=true; }
+    if(!t.usedAt){ t.usedAt=mapa[t.id].usedAt; cambio=true; }
+    if(!t.lastScanAt){ t.lastScanAt=mapa[t.id].lastScanAt; cambio=true; }
+    return cambio;
+  }
+  localStorage.setItem = function(key, value){
+    if(_escribiendo) return _prevSetItem(key, value);
+    try{
+      if(key===KEY_SCAN) return _prevSetItem(key, value);
+      if(key==='checktivas' || key==='checking_orders'){
+        var mapa=_leerMapa();
+        var incoming=null;
+        try{ incoming=JSON.parse(String(value||'[]')); }catch(e){ incoming=null; }
+        if(incoming && Array.isArray(incoming)){
+          var cambioMapa=false;
+          if(key==='checktivas'){
+            incoming.forEach(function(t){ if(_forzarTicket(t, mapa)) cambioMapa=true; });
+          } else {
+            incoming.forEach(function(o){ if(!o||!o.tickets) return; o.tickets.forEach(function(t){ if(_forzarTicket(t, mapa)) cambioMapa=true; }); });
+          }
+          if(cambioMapa){
+            _escribiendo=true;
+            try{ _prevSetItem(KEY_SCAN, JSON.stringify(mapa)); }catch(e2){} finally{ _escribiendo=false; }
+          }
+          // Escribir la version corregida (con YA USADO protegido) en vez de la vieja
+          return _prevSetItem(key, JSON.stringify(incoming));
+        }
+      }
+    }catch(e3){}
+    return _prevSetItem(key, value);
+  };
+  // ---- Sincronizar cada 600ms: si _limpiarDatos o un sync viejo devolvio un ticket a validado, devolverlo a usado de una vez ----
+  function _sincronizarUsados(){
+    try{
+      var mapa=_leerMapa();
+      var ids=Object.keys(mapa);
+      if(ids.length===0) return;
+      var cts=_leerLista('checktivas');
+      var cambioC=false;
+      cts.forEach(function(t){ if(t&&mapa[t.id] && Number(mapa[t.id].count||0)>=1){ if(_forzarTicket(t, mapa)) cambioC=true; } });
+      if(cambioC){ _escribiendo=true; try{ _prevSetItem('checktivas', JSON.stringify(cts)); }catch(e){} finally{ _escribiendo=false; } }
+      var orders=_leerLista('checking_orders');
+      var cambioO=false;
+      orders.forEach(function(o){ if(!o||!o.tickets) return; o.tickets.forEach(function(t){ if(t&&mapa[t.id] && Number(mapa[t.id].count||0)>=1){ if(_forzarTicket(t, mapa)) cambioO=true; } }); });
+      if(cambioO){ _escribiendo=true; try{ _prevSetItem('checking_orders', JSON.stringify(orders)); }catch(e2){} finally{ _escribiendo=false; } }
+    }catch(e){}
+  }
+  setInterval(_sincronizarUsados, 600);
+  // ---- Si el cartel grande VERIFICADO aparece para un codigo que ya tiene 2 lecturas, cambiarlo de una vez a YA USADO ----
+  function _corregirCartelGrande(){
+    try{
+      var ver=document.getElementById('checktiva-verificado-grande');
+      if(!ver || ver.style.display==='none' || getComputedStyle(ver).display==='none') return;
+      var infoEl=document.getElementById('checktiva-verificado-info');
+      var txt=infoEl?String(infoEl.textContent||''):'';
+      var m=txt.match(/CHK-[A-Z0-9\-]+|CT-[A-Z0-9\-]+/);
+      if(!m) return;
+      var id=m[0];
+      var mapa=_leerMapa();
+      var cnt=mapa[id]?Number(mapa[id].count||0):0;
+      if(cnt<2){
+        // Tambien revisar checktivas por si el mapa aun no aprendio
+        var cts=_leerLista('checktivas');
+        for(var i=0;i<cts.length;i++){ if(cts[i]&&cts[i].id===id){ cnt=Math.max(cnt, Number(cts[i].scanCount||0)); break; } }
+      }
+      if(cnt>=2){
+        ver.style.display='none';
+        var yu=document.getElementById('checktiva-ya-usado-grande');
+        var yuInfo=document.getElementById('checktiva-ya-usado-info');
+        if(yuInfo){
+          var titular='—'; var ev='';
+          var cts2=_leerLista('checktivas');
+          for(var j=0;j<cts2.length;j++){ if(cts2[j]&&cts2[j].id===id){ titular=((cts2[j].attendee&&cts2[j].attendee.name)||'—'); ev=cts2[j].eventTitle||''; break; } }
+          yuInfo.innerHTML='<div><b style="color:#FF3B30;">TITULAR:</b> '+String(titular).toUpperCase()+'</div><div><b style="color:#FF3B30;">ID:</b> '+id+'</div>'+(ev?'<div><b style="color:#FF3B30;">EVENTO:</b> '+ev+'</div>':'')+'<div style="margin-top:6px;font-size:11px;color:#ffdd88;"><b>Lecturas: 2 de 2</b> • Esta 3ª lectura NO es válida • Leído a las '+new Date().toLocaleTimeString()+'</div>';
+        }
+        if(yu) yu.style.display='flex';
+        var titulo=document.getElementById('checktiva-espera-titulo');
+        var sub=document.getElementById('checktiva-espera-sub');
+        if(titulo) titulo.textContent='YA USADO ⛔';
+        if(sub) sub.textContent='3ª lectura inválida • No permitir ingreso';
+        if(navigator.vibrate) try{ navigator.vibrate([200,100,200,100,200]); }catch(e){}
+      }
+    }catch(e){}
+  }
+  setInterval(_corregirCartelGrande, 300);
+  // ---- Boton "Leer otro codigo": cierra el resultado y el cartel grande, la camara queda grande y lista ----
+  function _cerrarResultadoYCartel(){
+    try{
+      var r1=document.getElementById('direct-scan-result'); if(r1){ r1.style.display='none'; }
+      var r2=document.getElementById('admin-direct-result'); if(r2){ r2.style.display='none'; }
+      var v=document.getElementById('checktiva-verificado-grande'); if(v) v.style.display='none';
+      var yu=document.getElementById('checktiva-ya-usado-grande'); if(yu) yu.style.display='none';
+      // Forzar camara a tamano completo
+      ['direct-reader','admin-direct-reader'].forEach(function(id){
+        var el=document.getElementById(id); if(!el) return;
+        el.style.width='100%'; el.style.height='100%'; el.style.minHeight='420px';
+        var vid=el.querySelector('video'); if(vid){ vid.style.width='100%'; vid.style.height='100%'; vid.style.minHeight='420px'; vid.style.objectFit='cover'; }
+      });
+    }catch(e){}
+  }
+  // Cuando el usuario toca Continuar / Leer otro / Denegar dentro del resultado, tambien cerrar el cartel grande
+  document.addEventListener('click', function(e){
+    try{
+      var b=e.target && e.target.closest ? e.target.closest('button') : null;
+      if(!b) return;
+      var enDirecto = b.closest ? b.closest('#direct-scan-result') : null;
+      var enAdmin = b.closest ? b.closest('#admin-direct-result') : null;
+      if(enDirecto || enAdmin){
+        // Dar tiempo a que el onclick original oculte el resultado, luego limpiar cartel y camara
+        setTimeout(_cerrarResultadoYCartel, 60);
+      }
+      if(b.id==='checktiva-lector-siguiente-btn' || b.id==='checktiva-lector-siguiente-btn-ya'){
+        e.preventDefault(); _cerrarResultadoYCartel();
+      }
+    }catch(err){}
+  }, true);
+  // Inyectar boton "Leer otro codigo" en cada resultado que aparezca, sin duplicarlo
+  function _inyectarBotonSiguiente(){
+    try{
+      [['direct-scan-result','checktiva-lector-siguiente-btn','✓ Leer otro código'], ['admin-direct-result','checktiva-lector-siguiente-btn-ya','✓ Leer otro código']].forEach(function(par){
+        var cont=document.getElementById(par[0]); if(!cont) return;
+        if(cont.style.display==='none') return;
+        if(cont.querySelector('#'+par[1])) return;
+        // Solo si ya hay un resultado (tiene texto de ACCESO o YA USADO o NO LEGITIMO)
+        var tx=String(cont.textContent||'');
+        if(tx.indexOf('ACCESO')===-1 && tx.indexOf('YA USADO')===-1 && tx.indexOf('NO PERMITIR')===-1 && tx.indexOf('CÓDIGO')===-1) return;
+        var btn=document.createElement('button');
+        btn.id=par[1]; btn.type='button'; btn.textContent=par[2];
+        btn.onclick=function(){ _cerrarResultadoYCartel(); };
+        cont.appendChild(btn);
+      });
+    }catch(e){}
+  }
+  setInterval(_inyectarBotonSiguiente, 700);
+  // Cuando termina la pausa de 8s y el cartel se oculta solo, el resultado no debe seguir achicando la camara: si el cartel ya no esta, y el resultado lleva abierto, dejarlo como flotante (el CSS ya lo hace) y no tocar nada mas
+  console.log('✅ FIX Lector QR listo: 1ra y 2da VALIDADO, 3ra YA USADO, camara fija');
+})();
+</script>
 </body></html>';
     return h;
   }
@@ -10147,11 +11106,13 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
         _ultimoAdmin = admin;
       }
       _asegurarDummy();
-      // FIX DEFINITIVO: nunca restaurar la INFO desde este script viejo. La INFO solo se muestra desde el script final si estamos en inicio sin ninguna ventana. Si no, se queda eliminada.
+      // Si algun script viejo le puso display none en linea a la seccion fija estando en inicio, devolverla.
       try{
-        var fijaVieja = document.getElementById('checktiva-casillas-finales');
-        if(fijaVieja && !document.body.classList.contains('checktiva-en-inicio')){
-          fijaVieja.style.setProperty('display','none','important');
+        if(!admin){
+          var fija = document.getElementById('checktiva-casillas-finales');
+          if(fija && fija.style && fija.style.display === 'none'){
+            fija.style.display = '';
+          }
         }
       }catch(e2){}
     }catch(e3){}
@@ -15536,1867 +16497,6 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
   console.log('✅ CheckTiva Eventos Sync activo: lo que crea el admin le aparece a todos');
 })();
 </script>
-
-<!-- FIX FINAL: QR oculto hasta validar + QR quieto sin parpadeo + eventos que si aparecen -->
-<script id="checktiva-fix-qr-oculto-quieto-eventos">
-(function(){
-  if(window.__checktivaQROcultoQuieto) return;
-  window.__checktivaQROcultoQuieto = true;
-  console.log('🔒 FIX FINAL QR oculto-quieto + eventos activo');
-  var SUPABASE_URL='https://ypjwzddddlinnrmtlgki.supabase.co';
-  var SUPABASE_KEY='sb_publishable_4zZ67hdGWK_HspMthhtPKg_ZuwbSvCD';
-
-  function _norm(s){ return String(s||'').toLowerCase().trim(); }
-  function _esPendiente(st){ var n=_norm(st); return n===''||n==='pendiente'||n==='pendiente_verificacion'||n==='pendiente_pago'||n==='pending'||n==='pendiente_validacion'||n==='por_validar'||n==='en_verificacion'; }
-  function _esValidadoSt(st){ var n=_norm(st); return n==='validado'||n==='pagado_confirmado'||n==='valido'||n==='activo'||n==='confirmado'||n==='aprobado'||n==='paid'||n==='completed'; }
-  function _esValidadoTicket(ticket, order){
-    try{
-      if(ticket && _esValidadoSt(ticket.status)) return true;
-      if(ticket && _esPendiente(ticket.status) && order && _esValidadoSt(order.status)) return true;
-      if(!ticket && order && _esValidadoSt(order.status)) return true;
-      return false;
-    }catch(e){ return false; }
-  }
-  function _leer(k){ try{ var r=localStorage.getItem(k); if(!r) return []; var a=JSON.parse(r); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
-
-  // ---------- 1) LIMPIAR DATOS: qrGenerated solo vale si status es validado ----------
-  function _limpiarDatos(){
-    try{
-      var orders=_leer('checking_orders');
-      var cambio=false;
-      for(var i=0;i<orders.length;i++){
-        var o=orders[i]||{};
-        var ordenValidada=_esValidadoSt(o.status);
-        var ts=o.tickets||[];
-        for(var j=0;j<ts.length;j++){
-          var t=ts[j]||{};
-          var ticketValidado=_esValidadoSt(t.status);
-          if(ordenValidada && !ticketValidado){
-            // Si la orden ya esta validada, el ticket tambien debe quedar validado (promover, no degradar)
-            t.status='validado'; t.qrGenerated=true; cambio=true;
-          } else if(!ordenValidada && !ticketValidado){
-            // Pendiente real: NO debe tener qrGenerated en true. Esto es lo que hacia que el QR apareciera antes de validar.
-            if(t.qrGenerated){ t.qrGenerated=false; cambio=true; }
-          } else if(ticketValidado && !ordenValidada){
-            // Ticket validado pero orden pendiente: subir la orden tambien para que no flip-flop
-            o.status='pagado_confirmado'; o.qrGenerated=true; cambio=true;
-          }
-        }
-      }
-      if(cambio){ try{ localStorage.setItem('checking_orders', JSON.stringify(orders)); }catch(e){} }
-    }catch(e){}
-    try{
-      var cts=_leer('checktivas');
-      var cambio2=false;
-      var orders2=_leer('checking_orders');
-      var mapaOrden={};
-      for(var a=0;a<orders2.length;a++){ var oo=orders2[a]||{}; (oo.tickets||[]).forEach(function(tt){ if(tt&&tt.id) mapaOrden[tt.id]=oo; }); }
-      for(var k=0;k<cts.length;k++){
-        var ct=cts[k]||{};
-        var ord=mapaOrden[ct.id];
-        var vTicket=_esValidadoSt(ct.status);
-        var vOrden=ord ? _esValidadoSt(ord.status) : false;
-        if(vTicket || vOrden){
-          if(!vTicket){ ct.status='validado'; cambio2=true; }
-          if(!ct.qrGenerated){ ct.qrGenerated=true; cambio2=true; }
-        } else {
-          if(ct.qrGenerated){ ct.qrGenerated=false; cambio2=true; }
-        }
-      }
-      if(cambio2){ try{ localStorage.setItem('checktivas', JSON.stringify(cts)); }catch(e){} }
-    }catch(e){}
-  }
-  _limpiarDatos();
-  setInterval(_limpiarDatos, 2500);
-
-  // ---------- 2) PARCHE localStorage.setItem: que React no borre eventos ni degrade validacion ----------
-  try{
-    var _origSetItem = localStorage.setItem.bind(localStorage);
-    var _origGetItem = localStorage.getItem.bind(localStorage);
-    var _eventosInicialesIds = {};
-    try{ _leer('checking_events').forEach(function(ev){ if(ev&&ev.id) _eventosInicialesIds[String(ev.id)]=true; }); }catch(e){}
-    var _creadosEnSesion = {};
-    var _patchActivo = false;
-    // Si un script viejo ya parcheo setItem, no lo pisamos dos veces: guardamos el original real solo una vez
-    if(!localStorage.__checktivaSetItemParcheado){
-      localStorage.__checktivaSetItemParcheado = true;
-      localStorage.setItem = function(key, value){
-        try{
-          if(key==='checking_events'){
-            try{
-              var nuevo=JSON.parse(value||'[]');
-              if(Array.isArray(nuevo)){
-                var guardado=[];
-                try{ guardado=JSON.parse(_origGetItem('checking_events')||'[]'); }catch(e){ guardado=[]; }
-                if(!Array.isArray(guardado)) guardado=[];
-                // Detectar creados en esta sesion (ids nuevos que aparecen en nuevo y no estaban en guardado ni en iniciales)
-                var guardadoIds={}; guardado.forEach(function(ev){ if(ev&&ev.id) guardadoIds[String(ev.id)]=true; });
-                nuevo.forEach(function(ev){ if(ev&&ev.id){ var id=String(ev.id); if(!guardadoIds[id] && !_eventosInicialesIds[id]) _creadosEnSesion[id]=true; } });
-                // Extras sincronizados: estan en guardado, no en iniciales, no en nuevo, y no fueron creados en sesion -> son de la nube, hay que conservarlos
-                var nuevoIds={}; nuevo.forEach(function(ev){ if(ev&&ev.id) nuevoIds[String(ev.id)]=true; });
-                var extras=[];
-                guardado.forEach(function(ev){
-                  if(!ev||!ev.id) return;
-                  var id=String(ev.id);
-                  if(!nuevoIds[id] && !_eventosInicialesIds[id] && !_creadosEnSesion[id]) extras.push(ev);
-                });
-                if(extras.length>0){
-                  var mezclado=nuevo.slice();
-                  extras.forEach(function(ev){ mezclado.push(ev); });
-                  // Guardar mezclado sin recursividad
-                  _patchActivo=true;
-                  _origSetItem(key, JSON.stringify(mezclado));
-                  _patchActivo=false;
-                  return;
-                }
-              }
-            }catch(e){}
-          }
-          if(key==='checking_orders'){
-            try{
-              var nuevoO=JSON.parse(value||'[]');
-              if(Array.isArray(nuevoO)){
-                var guardadoO=[];
-                try{ guardadoO=JSON.parse(_origGetItem('checking_orders')||'[]'); }catch(e){ guardadoO=[]; }
-                if(!Array.isArray(guardadoO)) guardadoO=[];
-                // Mapa de tickets guardados por id -> estado validado
-                var mapaTicket={};
-                guardadoO.forEach(function(o){ (o.tickets||[]).forEach(function(t){ if(t&&t.id) mapaTicket[String(t.id)]=t; }); });
-                var mapaOrdenGuardada={};
-                guardadoO.forEach(function(o){ if(o&&(o.id||o.orderId)) mapaOrdenGuardada[String(o.id||o.orderId)]=o; });
-                var cambioO=false;
-                nuevoO.forEach(function(o){
-                  if(!o) return;
-                  var og=mapaOrdenGuardada[String(o.id||o.orderId)];
-                  // Si la guardada estaba validada, la nueva no puede bajar a pendiente
-                  if(og && _esValidadoSt(og.status) && !_esValidadoSt(o.status)){ o.status=og.status; o.qrGenerated=true; cambioO=true; }
-                  (o.tickets||[]).forEach(function(t){
-                    if(!t||!t.id) return;
-                    var tg=mapaTicket[String(t.id)];
-                    if(tg && _esValidadoSt(tg.status) && !_esValidadoSt(t.status)){ t.status='validado'; t.qrGenerated=true; cambioO=true; }
-                    // Si sigue pendiente, qrGenerated debe ser false (no marcar como generado solo por verlo)
-                    if(!_esValidadoSt(t.status) && !_esValidadoSt(o.status) && t.qrGenerated){ t.qrGenerated=false; cambioO=true; }
-                  });
-                });
-                // Union: ordenes guardadas que no estan en nuevo (ej: orden validada que React no tiene aun) se conservan
-                var nuevoIdsO={}; nuevoO.forEach(function(o){ if(o&&(o.id||o.orderId)) nuevoIdsO[String(o.id||o.orderId)]=true; });
-                var faltantes=[];
-                guardadoO.forEach(function(o){ if(o&&(o.id||o.orderId) && !nuevoIdsO[String(o.id||o.orderId)]) faltantes.push(o); });
-                // Solo resucitar faltantes si alguna esta validada (una pendiente que React no tiene es porque aun no la creo, no hay que resucitarla si es pendiente vieja que ya se borro con removeItem)
-                var faltantesValidados=faltantes.filter(function(o){ return _esValidadoSt(o.status) || (o.tickets||[]).some(function(t){ return _esValidadoSt(t.status); }); });
-                if(faltantesValidados.length>0){
-                  nuevoO=nuevoO.concat(faltantesValidados);
-                  cambioO=true;
-                }
-                if(cambioO){
-                  _patchActivo=true;
-                  _origSetItem(key, JSON.stringify(nuevoO));
-                  _patchActivo=false;
-                  return;
-                }
-              }
-            }catch(e){}
-          }
-          if(key==='checktivas'){
-            try{
-              var nuevoC=JSON.parse(value||'[]');
-              if(Array.isArray(nuevoC)){
-                var guardadoC=[];
-                try{ guardadoC=JSON.parse(_origGetItem('checktivas')||'[]'); }catch(e){ guardadoC=[]; }
-                if(!Array.isArray(guardadoC)) guardadoC=[];
-                var mapaC={}; guardadoC.forEach(function(t){ if(t&&t.id) mapaC[String(t.id)]=t; });
-                var cambioC=false;
-                nuevoC.forEach(function(t){
-                  if(!t||!t.id) return;
-                  var tg2=mapaC[String(t.id)];
-                  if(tg2 && _esValidadoSt(tg2.status) && !_esValidadoSt(t.status)){ t.status='validado'; t.qrGenerated=true; cambioC=true; }
-                  if(!_esValidadoSt(t.status) && t.qrGenerated){ t.qrGenerated=false; cambioC=true; }
-                });
-                if(cambioC){
-                  _patchActivo=true;
-                  _origSetItem(key, JSON.stringify(nuevoC));
-                  _patchActivo=false;
-                  return;
-                }
-              }
-            }catch(e){}
-          }
-        }catch(e){}
-        if(_patchActivo){ return; }
-        return _origSetItem(key, value);
-      };
-    }
-  }catch(e){ console.log('patch localStorage error', e); }
-
-  // ---------- 3) EVENTOS: subir/bajar robusto sin recargar en bucle ----------
-  function _headers(json){ var h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}; if(json) h['Content-Type']='application/json'; return h; }
-  function _ligeroEvento(ev){
-    if(!ev) return null;
-    var co={}; ['id','title','category','location','venue','address','date','dateISO','day','time','price','stock','sold','description','color','status','active','featured','createdAt'].forEach(function(f){ if(ev[f]!==undefined) co[f]=ev[f]; });
-    if(typeof co.description==='string') co.description=co.description.slice(0,500);
-    if(Array.isArray(ev.ticketCategories)) co.ticketCategories=ev.ticketCategories.map(function(tc){ return {id:tc.id,name:tc.name,price:tc.price,stock:tc.stock,desc:tc.desc,color:tc.color,badge:tc.badge}; });
-    try{
-      if(typeof ev.image==='string' && ev.image.indexOf('http')===0) co.image=ev.image;
-      else if(ev.images && ev.images[0] && typeof ev.images[0].data==='string' && ev.images[0].data.indexOf('http')===0) co.image=ev.images[0].data;
-      else if(ev.images && ev.images[0] && typeof ev.images[0].data==='string' && ev.images[0].data.indexOf('data:image')===0) co.image=ev.images[0].data;
-      else if(typeof ev.image==='string' && ev.image.indexOf('data:image')===0) co.image=ev.image;
-    }catch(e){}
-    if(Array.isArray(ev.images)) co.images=ev.images;
-    return co;
-  }
-  var _subiendoEv=false;
-  function _subirEventos(){
-    if(_subiendoEv) return;
-    try{ if(typeof navigator!=='undefined' && navigator.onLine===false) return; }catch(e){}
-    var evs=_leer('checking_events');
-    if(evs.length===0) return;
-    _subiendoEv=true;
-    var promesas=evs.map(function(ev){
-      if(!ev||!ev.id) return Promise.resolve(false);
-      var fila={id:String(ev.id), data:_ligeroEvento(ev), updated_at:new Date().toISOString()};
-      var url=SUPABASE_URL+'/rest/v1/events?on_conflict=id';
-      var h=_headers(true); h['Prefer']='resolution=merge-duplicates,return=minimal';
-      return fetch(url,{method:'POST',headers:h,body:JSON.stringify(fila)}).then(function(r){ return r.ok; }).catch(function(){ return false; });
-    });
-    Promise.all(promesas).then(function(){ _subiendoEv=false; }).catch(function(){ _subiendoEv=false; });
-  }
-  var _bajandoEv=false;
-  var _ultimaRecargaEv=0;
-  function _bajarEventos(){
-    if(_bajandoEv) return;
-    try{ if(typeof navigator!=='undefined' && navigator.onLine===false) return; }catch(e){}
-    _bajandoEv=true;
-    fetch(SUPABASE_URL+'/rest/v1/events?select=*&order=updated_at.desc&limit=200',{headers:_headers(false)}).then(function(r){ return r.ok?r.json():[]; }).catch(function(){ return []; }).then(function(rows){
-      _bajandoEv=false;
-      if(!rows||rows.length===0) return;
-      var nube=[];
-      rows.forEach(function(row){ try{ if(row&&row.data&&typeof row.data==='object'&&row.data.id) nube.push(row.data); }catch(e){} });
-      if(nube.length===0) return;
-      var local=_leer('checking_events');
-      var mapa={}; local.forEach(function(ev){ if(ev&&ev.id) mapa[String(ev.id)]=ev; });
-      var cambio=false;
-      nube.forEach(function(ev){
-        var id=String(ev.id);
-        if(!mapa[id]){ mapa[id]=ev; cambio=true; }
-        else {
-          try{ if(JSON.stringify(mapa[id])!==JSON.stringify(ev)){ mapa[id]=ev; cambio=true; } }catch(e){}
-        }
-      });
-      if(!cambio) return;
-      var mezclados=Object.keys(mapa).map(function(k){ return mapa[k]; });
-      try{ localStorage.setItem('checking_events', JSON.stringify(mezclados)); }catch(e){}
-      // Recargar UNA vez para que React tome los nuevos eventos, pero nunca en checkout/admin/modal QR
-      try{
-        var txt=String(document.body?document.body.innerText||'':'');
-        var enCheckout = txt.indexOf('PASO')!==-1 && txt.indexOf('Titulares')!==-1;
-        var enAdmin = txt.indexOf('Crear evento')!==-1 && txt.indexOf('Sube desde tu celular')!==-1;
-        var modalQR=document.getElementById('checktiva-qr-modal');
-        var qrAbierto=modalQR && modalQR.style.display!=='none';
-        var ahora=Date.now();
-        if(!enCheckout && !enAdmin && !qrAbierto && (ahora-_ultimaRecargaEv>25000)){
-          _ultimaRecargaEv=ahora;
-          setTimeout(function(){ try{ location.reload(); }catch(e){} }, 900);
-        }
-      }catch(e){}
-    });
-  }
-  setTimeout(_bajarEventos, 1500);
-  setInterval(_bajarEventos, 6000);
-  setInterval(_subirEventos, 8000);
-  document.addEventListener('click', function(e){
-    try{
-      var b=e.target && e.target.closest ? e.target.closest('button') : null;
-      if(!b) return;
-      var tx=String(b.textContent||'');
-      if(tx.indexOf('Crear')!==-1 || tx.indexOf('Guardar')!==-1 || tx.indexOf('Publicar')!==-1 || tx.indexOf('Crear evento')!==-1){ setTimeout(_subirEventos, 800); setTimeout(_bajarEventos, 2500); }
-    }catch(err){}
-  }, true);
-
-  // ---------- 4) GUARDIAN FINAL QR: oculto si pendiente, quieto si validado ----------
-  var _qrFijo = {ticketId:'', src:''};
-  var _restaurando=false;
-  function _getTicket(ticketId){
-    try{
-      var orders=_leer('checking_orders');
-      for(var i=0;i<orders.length;i++){ var o=orders[i]||{}; var ts=o.tickets||[]; for(var j=0;j<ts.length;j++){ if(ts[j]&&ts[j].id===ticketId) return {ticket:ts[j], order:o}; } }
-      var cts=_leer('checktivas');
-      for(var k=0;k<cts.length;k++){ if(cts[k]&&cts[k].id===ticketId) return {ticket:cts[k], order:null}; }
-      if(window.currentTicket && window.currentTicket.ticket && window.currentTicket.ticket.id===ticketId) return {ticket:window.currentTicket.ticket, order:window.currentTicket.order||null};
-    }catch(e){}
-    return {ticket:null, order:null};
-  }
-  function _asegurarPending(){
-    var ph=document.getElementById('checktiva-qr-pending');
-    var imgEl=document.getElementById('checktiva-qr-image');
-    if(!imgEl) return null;
-    if(!ph){
-      ph=document.createElement('div');
-      ph.id='checktiva-qr-pending';
-      ph.style.cssText='width:230px;height:230px;background:#111;border:2px dashed rgba(139,105,20,0.5);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;margin:0 auto;';
-      try{ imgEl.parentNode.insertBefore(ph, imgEl); }catch(e){ return null; }
-    }
-    return ph;
-  }
-  function _ocultarQRFinal(){
-    try{
-      var imgEl=document.getElementById('checktiva-qr-image');
-      var fb=document.getElementById('checktiva-qr-fallback-code');
-      var dl=document.getElementById('checktiva-qr-download');
-      var sh=document.getElementById('checktiva-qr-share');
-      var pdf=document.getElementById('checktiva-qr-pdf-boleta');
-      var pdfTarjeta=document.getElementById('checktiva-qr-pdf-tarjeta');
-      var pdfAbajo1=document.getElementById('checktiva-qr-abajo-boleta');
-      var pdfAbajo2=document.getElementById('checktiva-qr-abajo-tarjeta');
-      if(imgEl){
-        try{ if(imgEl.src && imgEl.src!=='') imgEl.removeAttribute('src'); }catch(e){}
-        try{ imgEl.src=''; }catch(e){}
-        imgEl.style.display='none'; imgEl.style.visibility='hidden'; imgEl.style.opacity='0';
-        imgEl.setAttribute('data-qr-oculto','1');
-        imgEl.removeAttribute('data-qr-fijo');
-      }
-      _qrFijo={ticketId:'', src:''};
-      if(fb){ fb.style.display='none'; }
-      var ph=_asegurarPending();
-      if(ph){
-        ph.style.display='flex'; ph.style.visibility='visible'; ph.style.opacity='1';
-        ph.innerHTML='<div style="font-size:42px;margin-bottom:10px">🔒</div><div style="font-weight:900;color:#FFD700;font-size:13px">CÓDIGO OCULTO</div><div style="font-size:11px;color:white;margin-top:8px;line-height:1.5">Tu boleta ya llegó, pero el código está oculto.<br>El administrador debe validar tu pago para mostrarlo.</div><div style="margin-top:12px;background:rgba(255,193,7,0.15);border:1px solid rgba(255,193,7,0.35);color:#FFC107;padding:6px 12px;border-radius:999px;font-size:10px;font-weight:800">⏳ PENDIENTE DE VALIDACIÓN</div>';
-      }
-      // Ocultar cualquier otro QR dentro del modal (imagenes qrserver / data:image / canvas)
-      try{
-        var modal=document.getElementById('checktiva-qr-modal');
-        if(modal){
-          var imgs=modal.querySelectorAll('img');
-          for(var i=0;i<imgs.length;i++){ var im=imgs[i]; if(im.id==='checktiva-qr-image') continue; var src=im.src||''; if(src.indexOf('qrserver')!==-1 || src.indexOf('quickchart')!==-1 || src.indexOf('data:image')!==-1){ im.style.display='none'; im.style.visibility='hidden'; } }
-          var cvs=modal.querySelectorAll('canvas');
-          for(var c2=0;c2<cvs.length;c2++){ if(cvs[c2].width>=150 && cvs[c2].width<=700){ cvs[c2].style.display='none'; cvs[c2].style.visibility='hidden'; } }
-        }
-      }catch(e){}
-      if(dl) dl.style.display='none';
-      if(sh) sh.style.display='none';
-      if(pdf) pdf.style.display='none';
-      if(pdfAbajo1) pdfAbajo1.style.display='none';
-      // La tarjetica es el certificado de compra, se deja visible pero sin QR: el PDF de tarjetica ya revisa display del QR
-      if(pdfTarjeta) pdfTarjeta.style.display='';
-      if(pdfAbajo2) pdfAbajo2.style.display='';
-      // El pill de id debe decir PENDIENTE, no VALIDADO
-      try{
-        var idEl=document.getElementById('checktiva-qr-id');
-        if(idEl){
-          var base=(idEl.textContent||'').split('•')[0].trim();
-          if(base){ idEl.textContent=base+' • PENDIENTE'; idEl.style.background='rgba(255,193,7,0.15)'; idEl.style.borderColor='rgba(255,193,7,0.35)'; idEl.style.color='#FFC107'; }
-        }
-      }catch(e){}
-    }catch(e){}
-  }
-  function _mostrarQRFijo(){
-    try{
-      var imgEl=document.getElementById('checktiva-qr-image');
-      var ph=document.getElementById('checktiva-qr-pending');
-      var fb=document.getElementById('checktiva-qr-fallback-code');
-      var dl=document.getElementById('checktiva-qr-download');
-      var sh=document.getElementById('checktiva-qr-share');
-      var pdf=document.getElementById('checktiva-qr-pdf-boleta');
-      var pdfAbajo1=document.getElementById('checktiva-qr-abajo-boleta');
-      if(ph){ ph.style.display='none'; }
-      if(fb){ fb.style.display='none'; }
-      if(imgEl){
-        // Si ya tenemos un QR fijo para este ticket, restaurarlo si alguien lo cambio (esto quita el parpadeo)
-        var idEl2=document.getElementById('checktiva-qr-id');
-        var tid='';
-        if(idEl2) tid=(idEl2.textContent||'').split('•')[0].trim();
-        if(!tid && window.currentTicket && window.currentTicket.ticket) tid=window.currentTicket.ticket.id||'';
-        if(_qrFijo.ticketId && _qrFijo.ticketId===tid && _qrFijo.src && imgEl.src!==_qrFijo.src && !_restaurando){
-          _restaurando=true;
-          try{ imgEl.src=_qrFijo.src; }catch(e){}
-          setTimeout(function(){ _restaurando=false; }, 120);
-        }
-        // Si hay QR visible y aun no lo fijamos, fijarlo ahora (una sola vez, quieto)
-        if(imgEl.src && imgEl.src!=='' && (!_qrFijo.ticketId || _qrFijo.ticketId!==tid)){
-          _qrFijo={ticketId:tid, src:imgEl.src};
-          imgEl.setAttribute('data-qr-fijo', tid);
-          try{ imgEl.onerror=null; }catch(e){}
-        }
-        if(imgEl.src && imgEl.src!==''){
-          imgEl.style.display='block'; imgEl.style.visibility='visible'; imgEl.style.opacity='1';
-          imgEl.removeAttribute('data-qr-oculto');
-        }
-      }
-      if(dl) dl.style.display='';
-      if(sh) sh.style.display='';
-      if(pdf) pdf.style.display='';
-      if(pdfAbajo1) pdfAbajo1.style.display='';
-      try{
-        var idEl=document.getElementById('checktiva-qr-id');
-        if(idEl){
-          var txt=idEl.textContent||'';
-          if(txt.indexOf('PENDIENTE')!==-1){
-            var base2=txt.split('•')[0].trim();
-            idEl.textContent=base2+' • VALIDADO';
-            idEl.style.background='rgba(139,105,20,0.15)'; idEl.style.borderColor='rgba(139,105,20,0.3)'; idEl.style.color='#8B6914';
-          }
-        }
-      }catch(e){}
-    }catch(e){}
-  }
-  function _aplicarReglaFinal(ticketId){
-    try{
-      var modal=document.getElementById('checktiva-qr-modal');
-      if(!modal) return;
-      if(modal.style.display==='none') { _qrFijo={ticketId:'', src:''}; return; }
-      var id=ticketId||'';
-      if(!id){
-        try{ var idEl=document.getElementById('checktiva-qr-id'); if(idEl) id=(idEl.textContent||'').split('•')[0].trim(); }catch(e){}
-      }
-      if(!id){
-        try{ if(window.currentTicket && window.currentTicket.ticket) id=window.currentTicket.ticket.id||''; }catch(e){}
-      }
-      if(!id) return;
-      var d=_getTicket(id);
-      var validado=_esValidadoTicket(d.ticket, d.order);
-      if(!validado){ _ocultarQRFinal(); }
-      else { _mostrarQRFijo(); }
-    }catch(e){}
-  }
-  // Intervalo guardian: revisa cada 500ms, pero sin re-generar el QR (solo muestra/oculta y restaura el fijo)
-  setInterval(function(){ try{ _aplicarReglaFinal(''); }catch(e){} }, 500);
-  // Observador: si algun script viejo cambia el src o el display, volver a aplicar la regla una vez, con debounce
-  try{
-    var _timerObs=null;
-    var _obs=new MutationObserver(function(){
-      if(_restaurando) return;
-      if(_timerObs) clearTimeout(_timerObs);
-      _timerObs=setTimeout(function(){ try{ _aplicarReglaFinal(''); }catch(e){} }, 180);
-    });
-    setTimeout(function(){ try{ _obs.observe(document.body, {childList:true, subtree:true, attributes:true, attributeFilter:['style','src']}); }catch(e){} }, 1200);
-  }catch(e){}
-  // Envolver showQRModal AL FINAL (despues de todos los otros fixes) para que nuestra regla gane
-  function _envolverFinal(){
-    try{
-      var base=window.showQRModal;
-      if(!base || base._qrOcultoQuietoFinal) return;
-      var wrapped=function(ticketId){
-        try{ base(ticketId); }catch(e){}
-        // Dejar que los scripts viejos pongan su QR, y luego aplicar la regla final varias veces, cada vez mas tarde
-        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 60);
-        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 300);
-        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 800);
-        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 1500);
-        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 2500);
-        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 4200);
-        setTimeout(function(){ _aplicarReglaFinal(ticketId); }, 6000);
-      };
-      wrapped._qrOcultoQuietoFinal=true;
-      window.showQRModal=wrapped;
-      window.checktivaShowQR=wrapped;
-    }catch(e){}
-  }
-  setTimeout(_envolverFinal, 7000);
-  setTimeout(_envolverFinal, 9000);
-  // Bloquear descarga/compartir cuando esta pendiente (el QR esta oculto, no se puede descargar)
-  document.addEventListener('click', function(e){
-    try{
-      var btn=e.target && e.target.closest ? e.target.closest('#checktiva-qr-download, #checktiva-qr-share, #checktiva-qr-pdf-boleta') : null;
-      if(!btn) return;
-      var imgEl=document.getElementById('checktiva-qr-image');
-      if(imgEl && imgEl.getAttribute('data-qr-oculto')==='1'){
-        e.preventDefault(); e.stopPropagation();
-        var toast=document.createElement('div');
-        toast.textContent='🔒 Código oculto hasta que el admin valide tu pago';
-        toast.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#111;color:#fff;padding:14px 20px;border-radius:16px;border:1.5px solid #8B6914;z-index:999999;font-weight:800;font-size:13px;text-align:center;max-width:88vw;';
-        document.body.appendChild(toast);
-        setTimeout(function(){ try{ toast.remove(); }catch(e2){} }, 2200);
-        return false;
-      }
-    }catch(e2){}
-  }, true);
-  // Cuando el admin valida, limpiar datos para que el QR aparezca quieto de una vez
-  document.addEventListener('click', function(e){
-    try{
-      var b=e.target && e.target.closest ? e.target.closest('button') : null;
-      if(!b) return;
-      var tx=String(b.textContent||'');
-      if(tx.indexOf('Validar')!==-1){ setTimeout(_limpiarDatos, 800); setTimeout(_limpiarDatos, 1800); }
-    }catch(err){}
-  }, true);
-  console.log('✅ FIX FINAL listo: QR oculto hasta validar, QR quieto sin corto, eventos con merge');
-})();
-</script>
-<!-- FIX: Registro + Registros de cuentas en tiempo real -->
-<script id="checktiva-fix-registro-tiempo-real">
-(function(){
-  if(window.__checktivaRegistroTiempoReal) return;
-  window.__checktivaRegistroTiempoReal = true;
-  console.log('👥 FIX Registro tiempo real activo');
-  var NS='checktiva-netlify-2026-777';
-  var URL_CUENTAS='https://mantledb.sh/v2/'+NS+'/cuentas';
-  var CLAVES_CUENTAS=['checking_users','checking_all_users','checktiva_cuentas_backup','checktiva_cuentas','checking_all_accounts'];
-  function _normEmail(e){ return String(e==null?'':e).trim().toLowerCase(); }
-  function _normPhone(ph){ return String(ph==null?'':ph).replace(/[^0-9+]/g,''); }
-  function _leer(k){ try{ var r=localStorage.getItem(k); if(!r) return []; var a=JSON.parse(r); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
-  function _leerCuentasTodas(){
-    var listas=[];
-    for(var i=0;i<CLAVES_CUENTAS.length;i++) listas.push(_leer(CLAVES_CUENTAS[i]));
-    try{ var ses=JSON.parse(localStorage.getItem('checking_user')||'null'); if(ses&&(ses.email||ses.phone)) listas.push([ses]); }catch(e){}
-    return _fusionarCuentas(listas);
-  }
-  function _fusionarCuentas(listas){
-    var porClave={}; var orden=[];
-    function _clave(u){
-      var em=_normEmail(u.email||u.correo);
-      var ph=_normPhone(u.phone||u.telefono);
-      if(em) return 'email:'+em;
-      if(ph) return 'tel:'+ph;
-      if(u.id) return 'id:'+String(u.id);
-      return '';
-    }
-    function _poner(u){
-      if(!u||typeof u!=='object') return;
-      var clave=_clave(u); if(!clave) return;
-      var ex=porClave[clave];
-      if(!ex){
-        var copia={}; for(var k in u){ if(Object.prototype.hasOwnProperty.call(u,k)) copia[k]=u[k]; }
-        var em=_normEmail(u.email||u.correo); if(em) copia.email=em;
-        var ph=_normPhone(u.phone||u.telefono); if(ph&&!copia.phone) copia.phone=ph;
-        if(!copia.createdAt) copia.createdAt=new Date().toISOString();
-        porClave[clave]=copia; orden.push(copia);
-      } else {
-        for(var k2 in u){
-          if(!Object.prototype.hasOwnProperty.call(u,k2)) continue;
-          if(k2==='id') continue;
-          if(k2==='pass'||k2==='password'){
-            if((!ex.pass||ex.pass==='__google__')&&u[k2]&&u[k2]!=='__google__') ex.pass=u[k2];
-            continue;
-          }
-          if(k2==='createdAt'){
-            if(u.createdAt&&(!ex.createdAt||String(u.createdAt)<String(ex.createdAt))) ex.createdAt=u.createdAt;
-            continue;
-          }
-          if(k2==='lastLogin'){
-            if(u.lastLogin&&(!ex.lastLogin||String(u.lastLogin)>String(ex.lastLogin))) ex.lastLogin=u.lastLogin;
-            continue;
-          }
-          if((ex[k2]==null||ex[k2]==='')&&u[k2]!=null&&u[k2]!=='') ex[k2]=u[k2];
-        }
-        if(u.provider&&!ex.provider) ex.provider=u.provider;
-        if(u.google) ex.google=true;
-        var em2=_normEmail(u.email||u.correo); if(em2&&!ex.email) ex.email=em2;
-        var ph2=_normPhone(u.phone||u.telefono); if(ph2&&!ex.phone) ex.phone=ph2;
-      }
-    }
-    for(var i=0;i<listas.length;i++){ var arr=listas[i]; if(!Array.isArray(arr)) continue; for(var j=0;j<arr.length;j++) _poner(arr[j]); }
-    return orden;
-  }
-
-  // ---------- PARCHE setItem para cuentas: union, nunca borrar ----------
-  var _prevSetItem = localStorage.setItem.bind(localStorage);
-  var _escribiendo = false;
-  var _timerSubida = null;
-  function _programarSubida(){ if(_timerSubida) clearTimeout(_timerSubida); _timerSubida=setTimeout(_subirCuentasAhora, 500); }
-  localStorage.setItem = function(key, value){
-    if(_escribiendo) return _prevSetItem(key, value);
-    try{
-      if(CLAVES_CUENTAS.indexOf(key)!==-1){
-        var entrante=[];
-        try{ var p=JSON.parse(String(value||'[]')); if(Array.isArray(p)) entrante=p; }catch(e){ entrante=[]; }
-        var actuales=_leerCuentasTodas();
-        var fusionada=_fusionarCuentas([actuales, entrante]);
-        // Si no hay cambio real, dejar que siga el flujo normal para no hacer bucle
-        if(JSON.stringify(fusionada)===JSON.stringify(actuales) && JSON.stringify(entrante)===JSON.stringify(actuales)){
-          return _prevSetItem(key, value);
-        }
-        _escribiendo=true;
-        try{ for(var i=0;i<CLAVES_CUENTAS.length;i++){ try{ _prevSetItem(CLAVES_CUENTAS[i], JSON.stringify(fusionada)); }catch(e2){} } }finally{ _escribiendo=false; }
-        _programarSubida();
-        return;
-      }
-      if(key==='checking_user'){
-        var r=_prevSetItem(key, value);
-        try{
-          var ses=JSON.parse(String(value||'null'));
-          if(ses&&(ses.email||ses.phone)){
-            var cur=_leerCuentasTodas();
-            var existe=false;
-            for(var k=0;k<cur.length;k++){ if(_normEmail(cur[k].email||cur[k].correo)===_normEmail(ses.email||ses.correo) && _normEmail(ses.email||ses.correo)!==''){ existe=true; break; } if(ses.phone&&_normPhone(cur[k].phone||cur[k].telefono)===_normPhone(ses.phone)&&_normPhone(ses.phone)!==''){ existe=true; break; } }
-            if(!existe){
-              var f2=_fusionarCuentas([cur,[ses]]);
-              _escribiendo=true;
-              try{ for(var m=0;m<CLAVES_CUENTAS.length;m++){ try{ _prevSetItem(CLAVES_CUENTAS[m], JSON.stringify(f2)); }catch(e3){} } }finally{ _escribiendo=false; }
-              _programarSubida();
-            }
-          }
-        }catch(e4){}
-        return r;
-      }
-    }catch(e5){}
-    return _prevSetItem(key, value);
-  };
-
-  // ---------- SUBIDA INMEDIATA a Mantle ----------
-  var _subiendo=false;
-  function _subirCuentasAhora(){
-    if(_subiendo) return;
-    var cuentas=_leerCuentasTodas();
-    if(cuentas.length===0) return;
-    try{ if(typeof window.__checktivaSyncTiempoRealSubirCuentas==='function') window.__checktivaSyncTiempoRealSubirCuentas(); }catch(e){}
-    try{ if(typeof window.__checktivaSincronizarCuentas==='function') window.__checktivaSincronizarCuentas(); }catch(e){}
-    _subiendo=true;
-    fetch(URL_CUENTAS,{method:'GET'}).then(function(r){ return r.ok?r.json():{cuentas:[]}; }).catch(function(){ return {cuentas:[]}; }).then(function(data){
-      var nube=(data&&data.cuentas)||[];
-      if(!Array.isArray(nube)) nube=[];
-      var mezclado=_fusionarCuentas([nube, cuentas]);
-      // Si la nube ya tiene todo, no subir de nuevo
-      var yaTiene=true;
-      try{ yaTiene = JSON.stringify(_fusionarCuentas([nube]))===JSON.stringify(_fusionarCuentas([mezclado])); }catch(e){}
-      if(yaTiene && nube.length>=mezclado.length){ _subiendo=false; return; }
-      return fetch(URL_CUENTAS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({updatedAt:Date.now(), cuentas:mezclado})}).then(function(){ _subiendo=false; }).catch(function(){ _subiendo=false; });
-    }).catch(function(){ _subiendo=false; });
-  }
-  function _bajarCuentasAhora(){
-    fetch(URL_CUENTAS,{method:'GET'}).then(function(r){ return r.ok?r.json():null; }).catch(function(){ return null; }).then(function(data){
-      if(!data||!Array.isArray(data.cuentas)) return;
-      var nube=data.cuentas; if(nube.length===0) return;
-      var local=_leerCuentasTodas();
-      var mezclado=_fusionarCuentas([local, nube]);
-      if(JSON.stringify(mezclado)!==JSON.stringify(local)){
-        _escribiendo=true;
-        try{ for(var i=0;i<CLAVES_CUENTAS.length;i++){ try{ _prevSetItem(CLAVES_CUENTAS[i], JSON.stringify(mezclado)); }catch(e){} } }finally{ _escribiendo=false; }
-      }
-    });
-  }
-  setTimeout(_bajarCuentasAhora, 800);
-  setInterval(_bajarCuentasAhora, 3000);
-  window.addEventListener('storage', function(e){ if(e&&(CLAVES_CUENTAS.indexOf(e.key)!==-1||e.key==='checking_user')) setTimeout(_bajarCuentasAhora, 300); });
-  document.addEventListener('visibilitychange', function(){ if(!document.hidden) setTimeout(_bajarCuentasAhora, 300); });
-  document.addEventListener('click', function(e){
-    try{
-      var b=e.target&&e.target.closest?e.target.closest('button'):null;
-      if(!b) return;
-      var tx=String(b.textContent||'').trim();
-      if(tx.indexOf('Crear cuenta')!==-1||tx==='Crear'||tx.indexOf('Registrar')!==-1||tx.indexOf('Continuar')!==-1||tx.indexOf('Crear Cuenta')!==-1||tx.indexOf('Registrarse')!==-1){
-        setTimeout(_subirCuentasAhora, 800); setTimeout(_bajarCuentasAhora, 1600);
-      }
-    }catch(err){}
-  }, true);
-  // Tambien cuando React escribe cuentas (form submit), el parche ya programa la subida. Por si acaso, vigilar cambios locales cada 2s
-  var _ultimoLocalCuentas='';
-  try{ _ultimoLocalCuentas=JSON.stringify(_leerCuentasTodas()); }catch(e){}
-  setInterval(function(){
-    try{
-      var act=JSON.stringify(_leerCuentasTodas());
-      if(act!==_ultimoLocalCuentas){ _ultimoLocalCuentas=act; _programarSubida(); }
-    }catch(e){}
-  }, 2000);
-
-  // ---------- REFRESCO EN VIVO DE LOS DOS PANELES ----------
-  function _esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function _fmtFecha(v){ if(!v) return '-'; try{ return new Date(v).toLocaleString('es-CO'); }catch(e){ return String(v); } }
-  function _refrescarCuentasPanel(){
-    try{
-      var body=document.getElementById('checktiva-cuentas-body');
-      if(!body) return;
-      var cuentas=_leerCuentasTodas();
-      var inp=document.getElementById('checktiva-cuentas-buscar');
-      var f=inp?String(inp.value||'').trim().toLowerCase():'';
-      var lista=cuentas.filter(function(u){ if(!f) return true; return String((u.name||'')+' '+(u.email||'')+' '+(u.phone||'')).toLowerCase().indexOf(f)!==-1; });
-      var totalEl=document.getElementById('checktiva-cuentas-total');
-      if(totalEl) totalEl.textContent=String(cuentas.length);
-      var firma=cuentas.length+'|'+lista.length+'|'+f+'|'+cuentas.map(function(u){ return u.email||u.phone||''; }).join(',');
-      if(body.getAttribute('data-firma-rt')===firma) return;
-      var h='<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr><th style="background:#111;color:#fff;padding:8px;text-align:left;">Nombre</th><th style="background:#111;color:#fff;padding:8px;text-align:left;">Email (unico)</th><th style="background:#111;color:#fff;padding:8px;text-align:left;">Telefono</th><th style="background:#111;color:#fff;padding:8px;text-align:left;">Creada</th><th style="background:#111;color:#fff;padding:8px;text-align:left;">Ultimo ingreso</th></tr></thead><tbody>';
-      lista.forEach(function(u){
-        h+='<tr><td style="padding:7px;border:1px solid #222;">'+_esc(u.name||'-')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(u.email||'-')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(u.phone||'-')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(_fmtFecha(u.createdAt))+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(_fmtFecha(u.lastLogin))+'</td></tr>';
-      });
-      if(lista.length===0) h+='<tr><td colspan="5" style="padding:12px;text-align:center;color:#777;">Sin cuentas todavia. Cuando un usuario cree su cuenta, aparece aqui y queda guardada.</td></tr>';
-      h+='</tbody></table>';
-      var sc=body.scrollTop;
-      body.innerHTML=h;
-      body.scrollTop=sc;
-      body.setAttribute('data-firma-rt', firma);
-    }catch(e){}
-  }
-  function _construirDatosRegistros(){
-    var cuentas=_leerCuentasTodas();
-    var orders=_leer('checking_orders');
-    var cts=_leer('checktivas');
-    var events=_leer('checking_events');
-    var entradas=[];
-    orders.forEach(function(o){
-      (o.tickets||[]).forEach(function(t){
-        entradas.push({id:t.id, titular:((t.attendee&&t.attendee.name)||(o.buyer&&o.buyer.name)||t.titular||''), email:((t.attendee&&t.attendee.email)||(o.buyer&&o.buyer.email)||''), telefono:((t.attendee&&t.attendee.phone)||(o.buyer&&o.buyer.phone)||''), evento:t.eventTitle||o.eventTitle||'', categoria:t.ticketCategory||t.category||t.localidad||'', precio:t.price||0, estado:t.status||o.status||'', orden:o.id||'', fecha:t.createdAt||o.createdAt||''});
-      });
-    });
-    var ids={}; entradas.forEach(function(e){ ids[e.id]=true; });
-    cts.forEach(function(t){
-      if(!t||!t.id||ids[t.id]) return;
-      entradas.push({id:t.id, titular:((t.attendee&&t.attendee.name)||t.titular||''), email:((t.attendee&&t.attendee.email)||t.email||''), telefono:((t.attendee&&t.attendee.phone)||t.phone||''), evento:t.eventTitle||'', categoria:t.ticketCategory||t.category||'', precio:t.price||0, estado:t.status||'', orden:t.orderId||'', fecha:t.createdAt||''});
-    });
-    return {entradas:entradas, orders:orders, users:cuentas, events:events};
-  }
-  function _refrescarRegistrosPanel(){
-    try{
-      var body=document.getElementById('checktiva-registros-body');
-      if(!body) return;
-      var overlay=document.getElementById('checktiva-registros-overlay');
-      if(!overlay) return;
-      var btns=overlay.querySelectorAll('.reg-tab-btn');
-      var tabActual='todo';
-      for(var i=0;i<btns.length;i++){
-        var bg=String(btns[i].style.background||'');
-        var col=String(btns[i].style.color||'');
-        if(bg.indexOf('139')!==-1||bg==='#8B6914'||bg==='rgb(139, 105, 20)'||col==='rgb(0, 0, 0)'||col==='#000'){ tabActual=btns[i].getAttribute('data-reg-tab')||'todo'; break; }
-      }
-      var inp=document.getElementById('checktiva-registros-buscar');
-      var filtro=inp?String(inp.value||'').toLowerCase().trim():'';
-      var d=_construirDatosRegistros();
-      var firma=d.entradas.length+'|'+d.orders.length+'|'+d.users.length+'|'+d.events.length+'|'+tabActual+'|'+filtro+'|'+d.entradas.map(function(e){ return e.id+':'+e.estado; }).join(',');
-      if(body.getAttribute('data-firma-rt')===firma) return;
-      function _tabla(headers, filasHtml){
-        var h='<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr>';
-        headers.forEach(function(x){ h+='<th style="text-align:left;padding:8px;border:1px solid #222;background:#1a1a1a;">'+_esc(x)+'</th>'; });
-        h+='</tr></thead><tbody>'+filasHtml+'</tbody></table>';
-        return h;
-      }
-      var html='';
-      if(tabActual==='todo'||tabActual==='entradas'){
-        var ent=d.entradas.filter(function(e){ if(!filtro) return true; return String((e.titular||'')+' '+(e.email||'')+' '+(e.evento||'')+' '+(e.categoria||'')).toLowerCase().indexOf(filtro)!==-1; });
-        var filas='';
-        ent.forEach(function(e){
-          filas+='<tr><td style="padding:7px;border:1px solid #222;">'+_esc(e.id)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.titular)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.email)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.telefono)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.evento)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.categoria)+'</td><td style="padding:7px;border:1px solid #222;">$'+Number(e.precio||0).toLocaleString('es-CO')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.estado)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.orden)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(e.fecha)+'</td></tr>';
-        });
-        if(ent.length===0) filas='<tr><td colspan="10" style="padding:12px;text-align:center;color:#777;">Sin registros todavia</td></tr>';
-        html+='<div style="font-size:13px;font-weight:900;color:#8B6914;margin:14px 0 8px;">Registro de entradas</div>'+_tabla(['ID','Titular','Email','Telefono','Evento','Categoria','Precio','Estado','Orden','Fecha'], filas);
-      }
-      if(tabActual==='todo'||tabActual==='ventas'){
-        var ven=d.orders.filter(function(o){ if(!filtro) return true; var b=o.buyer||{}; return String((b.name||'')+' '+(b.email||'')+' '+(o.id||'')).toLowerCase().indexOf(filtro)!==-1; });
-        var fven='';
-        ven.forEach(function(o){
-          var b=o.buyer||{};
-          fven+='<tr><td style="padding:7px;border:1px solid #222;">'+_esc(o.id||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(b.name||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(b.email||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(b.phone||'')+'</td><td style="padding:7px;border:1px solid #222;">$'+Number(o.total||0).toLocaleString('es-CO')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(o.payMethod||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(o.status||'')+'</td><td style="padding:7px;border:1px solid #222;">'+((o.tickets||[]).length)+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(o.createdAt||'')+'</td></tr>';
-        });
-        if(ven.length===0) fven='<tr><td colspan="9" style="padding:12px;text-align:center;color:#777;">Sin ventas</td></tr>';
-        html+='<div style="font-size:13px;font-weight:900;color:#8B6914;margin:14px 0 8px;">Registro de ventas</div>'+_tabla(['Orden','Comprador','Email','Telefono','Total','Metodo','Estado','Tickets','Fecha'], fven);
-      }
-      if(tabActual==='todo'||tabActual==='usuarios'){
-        var usu=d.users.filter(function(u){ if(!filtro) return true; return String((u.name||'')+' '+(u.email||'')+' '+(u.phone||'')).toLowerCase().indexOf(filtro)!==-1; });
-        var fusu='';
-        usu.forEach(function(u){
-          fusu+='<tr><td style="padding:7px;border:1px solid #222;">'+_esc(u.name||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(u.email||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(u.phone||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(u.createdAt||u.fecha||'')+'</td></tr>';
-        });
-        if(usu.length===0) fusu='<tr><td colspan="4" style="padding:12px;text-align:center;color:#777;">Sin usuarios</td></tr>';
-        html+='<div style="font-size:13px;font-weight:900;color:#8B6914;margin:14px 0 8px;">Registro de usuarios</div>'+_tabla(['Nombre','Email','Telefono','Fecha registro'], fusu);
-      }
-      if(tabActual==='todo'||tabActual==='eventos'){
-        var eve=d.events.filter(function(ev){ if(!filtro) return true; return String((ev.title||'')+' '+(ev.location||'')+' '+(ev.venue||'')).toLowerCase().indexOf(filtro)!==-1; });
-        var feve='';
-        eve.forEach(function(ev){
-          feve+='<tr><td style="padding:7px;border:1px solid #222;">'+_esc(ev.title||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(ev.venue||ev.location||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(ev.location||'')+'</td><td style="padding:7px;border:1px solid #222;">'+_esc(ev.date||ev.dateISO||'')+'</td><td style="padding:7px;border:1px solid #222;">$'+Number(ev.price||0).toLocaleString('es-CO')+'</td></tr>';
-        });
-        if(eve.length===0) feve='<tr><td colspan="5" style="padding:12px;text-align:center;color:#777;">Sin eventos</td></tr>';
-        html+='<div style="font-size:13px;font-weight:900;color:#8B6914;margin:14px 0 8px;">Registro de eventos</div>'+_tabla(['Titulo','Lugar','Ciudad','Fecha','Precio'], feve);
-      }
-      // Actualizar contadores del encabezado (los primeros 7 <b> del overlay)
-      try{
-        var bs=overlay.querySelectorAll('b');
-        var totalVendido=d.orders.reduce(function(a,o){ return a+Number(o.total||0); },0);
-        var validados=d.entradas.filter(function(e){ var s=String(e.estado||'').toLowerCase(); return s==='validado'||s==='pagado_confirmado'||s==='valido'||s==='activo'; }).length;
-        var pendientes=Math.max(0, d.entradas.length-validados);
-        var vals=[d.entradas.length, d.orders.length, '$'+totalVendido.toLocaleString('es-CO'), validados, pendientes, d.users.length, d.events.length];
-        for(var k=0;k<7&&k<bs.length;k++){ bs[k].textContent=vals[k]; }
-      }catch(e2){}
-      var sc2=body.scrollTop;
-      body.innerHTML=html;
-      body.scrollTop=sc2;
-      body.setAttribute('data-firma-rt', firma);
-    }catch(e){}
-  }
-  setInterval(function(){ _refrescarCuentasPanel(); _refrescarRegistrosPanel(); }, 2000);
-  console.log('✅ FIX Registro tiempo real listo: cuentas con union, subida inmediata y paneles en vivo');
-})();
-</script>
-<!-- FIX LECTOR QR: solo 2 lecturas, 3ra = YA USADO + camara no se achica -->
-<style id="checktiva-fix-lector-qr-3ra-css">
-  /* CORREGIDO: el escaner solo se muestra cuando el admin lo abre (.active). Sin esto la pagina quedaba tapada por SCANNER DIRECTO */
-  #scanner-camera-direct-overlay{ display:none; }
-  #scanner-camera-direct-overlay.active{ display:flex !important; flex-direction:column !important; }
-  #scanner-camera-direct-overlay.active > div:nth-child(2){ flex:1 !important; min-height:0 !important; position:relative !important; }
-  #scanner-camera-direct-overlay.active #direct-reader{ width:100% !important; height:100% !important; min-height:420px !important; }
-  #scanner-camera-direct-overlay.active #direct-reader video{ width:100% !important; height:100% !important; min-height:420px !important; object-fit:cover !important; display:block !important; }
-  #direct-scan-result{ position:absolute !important; left:0 !important; right:0 !important; bottom:0 !important; z-index:30 !important; max-height:38vh !important; overflow-y:auto !important; box-shadow:0 -12px 32px rgba(0,0,0,0.65) !important; background:#111 !important; }
-  #admin-scanner-fullpage{ display:none; }
-  #admin-scanner-fullpage.active{ display:flex !important; flex-direction:column !important; }
-  #admin-scanner-fullpage.active > div:nth-child(2){ flex:1 !important; min-height:0 !important; position:relative !important; }
-  #admin-scanner-fullpage.active #admin-direct-reader{ width:100% !important; height:100% !important; min-height:420px !important; }
-  #admin-scanner-fullpage.active #admin-direct-reader video{ width:100% !important; height:100% !important; min-height:420px !important; object-fit:cover !important; display:block !important; }
-  #admin-direct-result{ position:absolute !important; left:0 !important; right:0 !important; bottom:64px !important; z-index:30 !important; max-height:38vh !important; overflow-y:auto !important; box-shadow:0 -12px 32px rgba(0,0,0,0.65) !important; background:#111 !important; }
-  #checktiva-lector-siguiente-btn{ width:100%; margin-top:10px; padding:12px; background:#00ff88; color:#000; border:none; border-radius:999px; font-weight:900; font-size:13px; cursor:pointer; }
-  #checktiva-lector-siguiente-btn-ya{ width:100%; margin-top:10px; padding:12px; background:#FFC107; color:#000; border:none; border-radius:999px; font-weight:900; font-size:13px; cursor:pointer; }
-</style>
-<script id="checktiva-fix-lector-qr-3ra">
-(function(){
-  if(window.__checktivaFixLectorQR3ra) return;
-  window.__checktivaFixLectorQR3ra = true;
-  console.log('FIX Lector QR: max 2 lecturas, 3ra YA USADO + camara fija');
-  var KEY_SCAN = 'checktiva_scan_counts';
-  function _leerMapa(){
-    try{ var r=localStorage.getItem(KEY_SCAN); if(!r) return {}; var o=JSON.parse(r); return (o&&typeof o==='object')?o:{}; }catch(e){ return {}; }
-  }
-  function _leerLista(k){ try{ var r=localStorage.getItem(k); if(!r) return []; var a=JSON.parse(r); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
-  function _ahora(){ return new Date().toISOString(); }
-  try{
-    var mapa0=_leerMapa(); var cambio0=false;
-    _leerLista('checktivas').forEach(function(t){
-      if(!t||!t.id) return;
-      var cnt=Math.max(Number(t.scanCount||0), (t.used||t.status==='usado'||t.status==='used')?1:0);
-      if(cnt>0 && (!mapa0[t.id] || Number(mapa0[t.id].count||0)<cnt)){ mapa0[t.id]={count:cnt, usedAt:t.usedAt||_ahora(), lastScanAt:t.lastScanAt||_ahora()}; cambio0=true; }
-    });
-    _leerLista('checking_orders').forEach(function(o){ (o.tickets||[]).forEach(function(t){
-      if(!t||!t.id) return;
-      var cnt2=Math.max(Number(t.scanCount||0), (t.used||t.status==='usado'||t.status==='used')?1:0);
-      if(cnt2>0 && (!mapa0[t.id] || Number(mapa0[t.id].count||0)<cnt2)){ mapa0[t.id]={count:cnt2, usedAt:t.usedAt||_ahora(), lastScanAt:t.lastScanAt||_ahora()}; cambio0=true; }
-    }); });
-    if(cambio0){ try{ localStorage.setItem(KEY_SCAN, JSON.stringify(mapa0)); }catch(e){} }
-  }catch(e){}
-  var _prevSetItem = localStorage.setItem.bind(localStorage);
-  var _escribiendo=false;
-  function _forzarTicket(t, mapa){
-    if(!t||!t.id) return false;
-    var auth=Math.max(Number(t.scanCount||0), mapa[t.id]?Number(mapa[t.id].count||0):0);
-    if((t.used||t.status==='usado'||t.status==='used') && auth===0) auth=1;
-    if(auth<=0) return false;
-    var cambio=false;
-    if(!mapa[t.id] || Number(mapa[t.id].count||0)<auth){
-      mapa[t.id]={count:auth, usedAt:t.usedAt|| (mapa[t.id]&&mapa[t.id].usedAt) || _ahora(), lastScanAt:t.lastScanAt||_ahora()};
-      cambio=true;
-    }
-    var debeScan = auth>=2 ? 2 : 1;
-    if(Number(t.scanCount||0)!==debeScan){ t.scanCount=debeScan; cambio=true; }
-    if(t.status!=='usado'){ t.status='usado'; cambio=true; }
-    if(!t.used){ t.used=true; cambio=true; }
-    if(!t.usedAt){ t.usedAt=mapa[t.id].usedAt; cambio=true; }
-    if(!t.lastScanAt){ t.lastScanAt=mapa[t.id].lastScanAt; cambio=true; }
-    return cambio;
-  }
-  localStorage.setItem = function(key, value){
-    if(_escribiendo) return _prevSetItem(key, value);
-    try{
-      if(key===KEY_SCAN) return _prevSetItem(key, value);
-      if(key==='checktivas' || key==='checking_orders'){
-        var mapa=_leerMapa();
-        var incoming=null;
-        try{ incoming=JSON.parse(String(value||'[]')); }catch(e){ incoming=null; }
-        if(incoming && Array.isArray(incoming)){
-          var cambioMapa=false;
-          if(key==='checktivas'){
-            incoming.forEach(function(t){ if(_forzarTicket(t, mapa)) cambioMapa=true; });
-          } else {
-            incoming.forEach(function(o){ if(!o||!o.tickets) return; o.tickets.forEach(function(t){ if(_forzarTicket(t, mapa)) cambioMapa=true; }); });
-          }
-          if(cambioMapa){
-            _escribiendo=true;
-            try{ _prevSetItem(KEY_SCAN, JSON.stringify(mapa)); }catch(e2){} finally{ _escribiendo=false; }
-          }
-          return _prevSetItem(key, JSON.stringify(incoming));
-        }
-      }
-    }catch(e3){}
-    return _prevSetItem(key, value);
-  };
-  function _sincronizarUsados(){
-    try{
-      var mapa=_leerMapa();
-      var ids=Object.keys(mapa);
-      if(ids.length===0) return;
-      var cts=_leerLista('checktivas');
-      var cambioC=false;
-      cts.forEach(function(t){ if(t&&mapa[t.id] && Number(mapa[t.id].count||0)>=1){ if(_forzarTicket(t, mapa)) cambioC=true; } });
-      if(cambioC){ _escribiendo=true; try{ _prevSetItem('checktivas', JSON.stringify(cts)); }catch(e){} finally{ _escribiendo=false; } }
-      var orders=_leerLista('checking_orders');
-      var cambioO=false;
-      orders.forEach(function(o){ if(!o||!o.tickets) return; o.tickets.forEach(function(t){ if(t&&mapa[t.id] && Number(mapa[t.id].count||0)>=1){ if(_forzarTicket(t, mapa)) cambioO=true; } }); });
-      if(cambioO){ _escribiendo=true; try{ _prevSetItem('checking_orders', JSON.stringify(orders)); }catch(e2){} finally{ _escribiendo=false; } }
-    }catch(e){}
-  }
-  setInterval(_sincronizarUsados, 600);
-  function _corregirCartelGrande(){
-    try{
-      var ver=document.getElementById('checktiva-verificado-grande');
-      if(!ver || ver.style.display==='none' || getComputedStyle(ver).display==='none') return;
-      var infoEl=document.getElementById('checktiva-verificado-info');
-      var txt=infoEl?String(infoEl.textContent||''):'';
-      var m=txt.match(/CHK-[A-Z0-9\-]+|CT-[A-Z0-9\-]+/);
-      if(!m) return;
-      var id=m[0];
-      var mapa=_leerMapa();
-      var cnt=mapa[id]?Number(mapa[id].count||0):0;
-      if(cnt<2){
-        var cts=_leerLista('checktivas');
-        for(var i=0;i<cts.length;i++){ if(cts[i]&&cts[i].id===id){ cnt=Math.max(cnt, Number(cts[i].scanCount||0)); break; } }
-      }
-      if(cnt>=2){
-        ver.style.display='none';
-        var yu=document.getElementById('checktiva-ya-usado-grande');
-        var yuInfo=document.getElementById('checktiva-ya-usado-info');
-        if(yuInfo){
-          var titular='—'; var ev='';
-          var cts2=_leerLista('checktivas');
-          for(var j=0;j<cts2.length;j++){ if(cts2[j]&&cts2[j].id===id){ titular=((cts2[j].attendee&&cts2[j].attendee.name)||'—'); ev=cts2[j].eventTitle||''; break; } }
-          yuInfo.innerHTML='<div><b style="color:#FF3B30;">TITULAR:</b> '+String(titular).toUpperCase()+'</div><div><b style="color:#FF3B30;">ID:</b> '+id+'</div>'+(ev?'<div><b style="color:#FF3B30;">EVENTO:</b> '+ev+'</div>':'')+'<div style="margin-top:6px;font-size:11px;color:#ffdd88;"><b>Lecturas: 2 de 2</b> • Esta 3ª lectura NO es válida • Leído a las '+new Date().toLocaleTimeString()+'</div>';
-        }
-        if(yu) yu.style.display='flex';
-        var titulo=document.getElementById('checktiva-espera-titulo');
-        var sub=document.getElementById('checktiva-espera-sub');
-        if(titulo) titulo.textContent='YA USADO ⛔';
-        if(sub) sub.textContent='3ª lectura inválida • No permitir ingreso';
-        if(navigator.vibrate) try{ navigator.vibrate([200,100,200,100,200]); }catch(e){}
-      }
-    }catch(e){}
-  }
-  setInterval(_corregirCartelGrande, 300);
-  function _cerrarResultadoYCartel(){
-    try{
-      var r1=document.getElementById('direct-scan-result'); if(r1){ r1.style.display='none'; }
-      var r2=document.getElementById('admin-direct-result'); if(r2){ r2.style.display='none'; }
-      var v=document.getElementById('checktiva-verificado-grande'); if(v) v.style.display='none';
-      var yu=document.getElementById('checktiva-ya-usado-grande'); if(yu) yu.style.display='none';
-      ['direct-reader','admin-direct-reader'].forEach(function(id){
-        var el=document.getElementById(id); if(!el) return;
-        el.style.width='100%'; el.style.height='100%'; el.style.minHeight='420px';
-        var vid=el.querySelector('video'); if(vid){ vid.style.width='100%'; vid.style.height='100%'; vid.style.minHeight='420px'; vid.style.objectFit='cover'; }
-      });
-    }catch(e){}
-  }
-  document.addEventListener('click', function(e){
-    try{
-      var b=e.target && e.target.closest ? e.target.closest('button') : null;
-      if(!b) return;
-      var enDirecto = b.closest ? b.closest('#direct-scan-result') : null;
-      var enAdmin = b.closest ? b.closest('#admin-direct-result') : null;
-      if(enDirecto || enAdmin){
-        setTimeout(_cerrarResultadoYCartel, 60);
-      }
-      if(b.id==='checktiva-lector-siguiente-btn' || b.id==='checktiva-lector-siguiente-btn-ya'){
-        e.preventDefault(); _cerrarResultadoYCartel();
-      }
-    }catch(err){}
-  }, true);
-  function _inyectarBotonSiguiente(){
-    try{
-      [['direct-scan-result','checktiva-lector-siguiente-btn','✓ Leer otro código'], ['admin-direct-result','checktiva-lector-siguiente-btn-ya','✓ Leer otro código']].forEach(function(par){
-        var cont=document.getElementById(par[0]); if(!cont) return;
-        if(cont.style.display==='none') return;
-        if(cont.querySelector('#'+par[1])) return;
-        var tx=String(cont.textContent||'');
-        if(tx.indexOf('ACCESO')===-1 && tx.indexOf('YA USADO')===-1 && tx.indexOf('NO PERMITIR')===-1 && tx.indexOf('CÓDIGO')===-1) return;
-        var btn=document.createElement('button');
-        btn.id=par[1]; btn.type='button'; btn.textContent=par[2];
-        btn.onclick=function(){ _cerrarResultadoYCartel(); };
-        cont.appendChild(btn);
-      });
-    }catch(e){}
-  }
-  setInterval(_inyectarBotonSiguiente, 700);
-  console.log('FIX Lector QR listo: 1ra y 2da VALIDADO, 3ra YA USADO, camara fija');
-})();
-</script>
-<!-- FIX FINAL FULL: Boleta Oficial limpia + 2 ventanas + tiempo real full -->
-<style id="checktiva-fix-full-final-v1-css">
-  /* Boleta Oficial: QR grande y limpio SOLO cuando ya esta validado (data-qr-oculto=0). Si esta pendiente, no lo forzamos a aparecer */
-  #checktiva-qr-modal #checktiva-qr-image[data-qr-oculto="0"]{ width:min(320px, 82vw) !important; height:auto !important; min-width:260px !important; display:block !important; margin:0 auto !important; animation:none !important; transition:none !important; }
-  body.checktiva-boleta-abierta #checktiva-qr-modal{ z-index:99999 !important; }
-  body.checktiva-boleta-abierta #checktiva-qr-general,
-  body.checktiva-boleta-abierta .checktiva-qr-general-banner,
-  body.checktiva-boleta-abierta [id*="qr-general"]{ display:none !important; }
-  #checktiva-qr-pending{ animation:none !important; }
-</style>
-<script id="checktiva-fix-full-final-v1">
-(function(){
-  if(window.__checktivaFullFinal) return;
-  window.__checktivaFullFinal = true;
-  console.log('FULL FINAL: Boleta limpia + 2 ventanas + tiempo real');
-  function _modalAbierta(){
-    try{
-      var m=document.getElementById('checktiva-qr-modal');
-      if(!m) return false;
-      var st=window.getComputedStyle?window.getComputedStyle(m):null;
-      if(!st) return m.style.display!=='none';
-      return st.display!=='none' && st.visibility!=='hidden' && m.offsetParent!==null;
-    }catch(e){ return false; }
-  }
-  function _actualizarClaseBoleta(){
-    try{ document.body.classList.toggle('checktiva-boleta-abierta', _modalAbierta()); }catch(e){}
-  }
-  function _qrQuieto(){
-    try{
-      var img=document.getElementById('checktiva-qr-image');
-      if(!img) return;
-      if(img.getAttribute('data-qr-oculto')==='0' || img.style.display==='block'){
-        img.style.animation='none';
-        img.style.transition='none';
-      }
-    }catch(e){}
-  }
-  setInterval(function(){ _actualizarClaseBoleta(); _qrQuieto(); }, 500);
-  try{
-    var obs=new MutationObserver(function(){ _actualizarClaseBoleta(); _qrQuieto(); });
-    obs.observe(document.body, {childList:true, subtree:true, attributes:true});
-  }catch(e){}
-  document.addEventListener('click', function(){ setTimeout(_actualizarClaseBoleta, 150); setTimeout(_actualizarClaseBoleta, 600); }, true);
-  setInterval(function(){
-    try{ window.dispatchEvent(new Event('checktiva-full-tick')); }catch(e){}
-  }, 2000);
-  console.log('FULL FINAL listo: Boleta limpia, 2 ventanas, QR quieto');
-})();
-</script>
-
-
-<!-- FIX: Mis Tickets abre su ventanilla, no la INFO IMPORTANTE -->
-<style id="checktiva-fix-info-solo-inicio-css">
-  /* INFO por defecto oculta: solo se muestra cuando el script confirma que estamos en inicio sin ninguna ventana */
-  #checktiva-casillas-finales{ display:none !important; }
-  body.checktiva-en-inicio #checktiva-casillas-finales{ display:block !important; visibility:visible !important; }
-  body.checktiva-info-oculta #checktiva-casillas-finales,
-  body.checktiva-info-oculta #checktiva-info-legal-inicio,
-  body.checktiva-mis-tickets-abierto #checktiva-casillas-finales,
-  body.checktiva-mis-tickets-abierto #checktiva-info-legal-inicio{ display:none !important; visibility:hidden !important; }
-  #checktiva-info-legal-inicio{ display:none !important; }
-</style>
-<script id="checktiva-fix-info-solo-inicio">
-(function(){
-  if(window.__checktivaInfoSoloInicioV6) return;
-  window.__checktivaInfoSoloInicioV6 = true;
-  console.log('FIX INFO v6: INFO solo en inicio arriba de la foto del codigo, eliminada de todo lo demas incluido admin');
-  var misTicketsPedido = false;
-  var contadorSinModal = 0;
-  function _esVisible(el){
-    try{
-      if(!el) return false;
-      if(el.style && el.style.display==='none') return false;
-      var st=window.getComputedStyle ? window.getComputedStyle(el) : null;
-      if(st && (st.display==='none' || st.visibility==='hidden')) return false;
-      return true;
-    }catch(e){ return false; }
-  }
-  function _esAdmin(){
-    try{
-      // URL admin
-      if(window.location && window.location.search && window.location.search.indexOf('admin=true')!==-1) return true;
-      // localStorage admin
-      try{
-        if(localStorage.getItem('checking_admin')==='true' || localStorage.getItem('checking_isAdmin')==='true') return true;
-      }catch(e){}
-      var root=document.getElementById('root');
-      var txt=root ? (root.textContent||'') : '';
-      var bodyTxt=document.body ? (document.body.textContent||'') : '';
-      // Login admin
-      if(txt.indexOf('Panel Administrador')!==-1) return true;
-      if(txt.indexOf('Usuario administrador')!==-1) return true;
-      if(document.querySelector('input[placeholder*="Usuario administrador"]')) return true;
-      // Dashboard admin YA LOGUEADO - aqui estaba el error: antes solo buscaba Panel Administrador
-      if(txt.indexOf('Modo Administrador')!==-1) return true;
-      if(txt.indexOf('Tú eres el administrador')!==-1) return true;
-      if(txt.indexOf('Crear Eventos')!==-1 && txt.indexOf('Ventas / Tickets')!==-1) return true;
-      if(txt.indexOf('Dashboard')!==-1 && txt.indexOf('Crear Eventos')!==-1) return true;
-      if(txt.indexOf('ADMIN MODE')!==-1) return true;
-      // Si el body tiene la clase de admin de otro script
-      if(document.body.classList.contains('checktiva-admin-abierto')) return true;
-      return false;
-    }catch(e){ return false; }
-  }
-  function _hayMisTicketsAbierto(){
-    try{
-      var divs=document.getElementsByTagName('div');
-      for(var i=0;i<divs.length;i++){
-        var d=divs[i];
-        var cn=String(d.className||'');
-        if(cn.indexOf('z-[65]')===-1) continue;
-        var txt=String(d.textContent||'');
-        if(txt.indexOf('Mis tickets')!==-1 && txt.indexOf('órdenes')!==-1) return true;
-      }
-      // Respaldo de Mis Tickets
-      var resp=document.getElementById('checktiva-mis-tickets-respaldo');
-      if(resp && resp.classList.contains('checktiva-respaldo-abierto')) return true;
-    }catch(e){}
-    return false;
-  }
-  function _hayCualquierVentana(){
-    try{
-      if(_esAdmin()) return true;
-      if(_hayMisTicketsAbierto()) return true;
-      var qr=document.getElementById('checktiva-qr-modal');
-      if(qr && _esVisible(qr)) return true;
-      var edit=document.getElementById('checktiva-edit-modal');
-      if(edit && _esVisible(edit)) return true;
-      var cat=document.getElementById('checktiva-cat-modal');
-      if(cat && _esVisible(cat)) return true;
-      var divs=document.getElementsByTagName('div');
-      for(var j=0;j<divs.length;j++){
-        var d2=divs[j];
-        var cn2=String(d2.className||'');
-        if(cn2.indexOf('fixed')===-1 || cn2.indexOf('inset-0')===-1) continue;
-        if(!_esVisible(d2)) continue;
-        var ft=String(d2.textContent||'');
-        if(ft.indexOf('Tu carrito')!==-1 && ft.length<3000) return true;
-        if(ft.indexOf('Boleta Oficial')!==-1) return true;
-        if(ft.indexOf('Iniciar sesión')!==-1 && ft.indexOf('Crear cuenta')!==-1) return true;
-        if(ft.indexOf('Checkout')!==-1 && ft.indexOf('Paso')!==-1) return true;
-      }
-    }catch(e){}
-    return false;
-  }
-  function _eliminarCopiasInfo(){
-    try{
-      // La copia inyectada #checktiva-info-legal-inicio: eliminarla SIEMPRE, la unica que queda es #checktiva-casillas-finales en inicio
-      var info=document.getElementById('checktiva-info-legal-inicio');
-      if(info){
-        // Si es el dummy vacio, dejarlo oculto. Si tiene contenido (es la ventana fastidiosa), eliminarlo.
-        var txtInfo=(info.textContent||'').trim();
-        if(txtInfo.length>50){
-          info.remove();
-        } else {
-          info.style.setProperty('display','none','important');
-        }
-      }
-    }catch(e){}
-  }
-  function _ocultarInfo(){
-    try{
-      _eliminarCopiasInfo();
-      document.body.classList.add('checktiva-info-oculta');
-      document.body.classList.add('checktiva-mis-tickets-abierto');
-      document.body.classList.remove('checktiva-en-inicio');
-      var cas=document.getElementById('checktiva-casillas-finales');
-      if(cas){ cas.style.setProperty('display','none','important'); cas.style.setProperty('visibility','hidden','important'); }
-    }catch(e){}
-  }
-  function _mostrarSoloEnInicio(){
-    try{
-      _eliminarCopiasInfo();
-      // Nunca mostrar si estamos en admin o hay ventana
-      if(_hayCualquierVentana()){ _ocultarInfo(); return; }
-      document.body.classList.remove('checktiva-info-oculta');
-      document.body.classList.remove('checktiva-mis-tickets-abierto');
-      document.body.classList.add('checktiva-en-inicio');
-      var cas=document.getElementById('checktiva-casillas-finales');
-      if(cas){ cas.style.removeProperty('display'); cas.style.removeProperty('visibility'); cas.style.display=''; }
-    }catch(e){}
-  }
-  function _aplicar(){
-    try{
-      if(misTicketsPedido){
-        _ocultarInfo();
-        if(!_hayCualquierVentana()){
-          contadorSinModal++;
-          if(contadorSinModal>=3){
-            misTicketsPedido=false;
-            contadorSinModal=0;
-            _mostrarSoloEnInicio();
-          }
-        } else { contadorSinModal=0; }
-        return;
-      }
-      if(_hayCualquierVentana()){
-        contadorSinModal=0;
-        _ocultarInfo();
-      } else {
-        contadorSinModal++;
-        if(contadorSinModal>=2) _mostrarSoloEnInicio();
-      }
-    }catch(e){}
-  }
-  document.addEventListener('click', function(e){
-    try{
-      var b=e.target && e.target.closest ? e.target.closest('button, a') : null;
-      if(!b) return;
-      var txt=String(b.textContent||'').trim();
-      // Cualquier boton de admin, Mis Tickets, carrito, login, casillas -> ocultar INFO
-      if((txt.indexOf('Mis tickets')!==-1 && txt.length<60) || txt.indexOf('Panel Admin')!==-1 || txt.indexOf('Carrito')!==-1 || txt.indexOf('Iniciar sesión')!==-1 || txt.indexOf('Dashboard')!==-1 || txt.indexOf('Crear Eventos')!==-1 || txt.indexOf('Ventas / Tickets')!==-1 || txt.indexOf('Configuración')!==-1 || txt.indexOf('Ver web cliente')!==-1){
-        if(txt.indexOf('Mis tickets')!==-1) misTicketsPedido=true;
-        contadorSinModal=0;
-        _ocultarInfo();
-        setTimeout(_ocultarInfo, 150);
-        setTimeout(_ocultarInfo, 400);
-        setTimeout(_ocultarInfo, 900);
-        if(txt.indexOf('Mis tickets')!==-1){
-          setTimeout(function(){ try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(e2){ try{ window.scrollTo(0,0); }catch(e3){} } }, 200);
-        }
-        return;
-      }
-      if(misTicketsPedido){
-        try{
-          var divs=document.getElementsByTagName('div');
-          for(var q=0;q<divs.length;q++){
-            var d=divs[q];
-            var cn=String(d.className||'');
-            if(cn.indexOf('z-[65]')===-1) continue;
-            if(!d.contains(b)) continue;
-            var txtBtn=String(b.textContent||'').trim();
-            if(txtBtn==='' || txtBtn==='×' || txtBtn==='X' || txtBtn==='✕'){
-              setTimeout(function(){ misTicketsPedido=false; contadorSinModal=0; _aplicar(); }, 300);
-              break;
-            }
-          }
-        }catch(e2){}
-      }
-    }catch(e){}
-  }, true);
-  try{ window.scrollTo(0,0); }catch(e){}
-  setInterval(_aplicar, 400);
-  setInterval(_eliminarCopiasInfo, 1000);
-  try{
-    var obs=new MutationObserver(function(){ _aplicar(); });
-    obs.observe(document.body, {childList:true, subtree:true});
-  }catch(e){}
-  _aplicar();
-})();
-</script>
-
-
-<!-- RESPALDO MIS TICKETS: si la ventanilla de React no abre en 800ms, abre esta. No toca nada mas. -->
-<style id="checktiva-mis-tickets-respaldo-css">
-  #checktiva-mis-tickets-respaldo{ display:none; position:fixed; inset:0; z-index:999999; justify-content:flex-end; }
-  #checktiva-mis-tickets-respaldo.checktiva-respaldo-abierto{ display:flex !important; }
-  #checktiva-mis-tickets-respaldo .respaldo-fondo{ position:absolute; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); }
-  #checktiva-mis-tickets-respaldo .respaldo-panel{ position:relative; display:flex; flex-direction:column; height:100%; width:100%; max-width:480px; background:#0F0F0F; border-left:1px solid rgba(255,255,255,0.1); }
-  #checktiva-mis-tickets-respaldo .respaldo-lista{ flex:1; overflow:auto; padding:20px; display:flex; flex-direction:column; gap:16px; }
-  #checktiva-mis-tickets-respaldo .respaldo-ticket{ border-radius:20px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); padding:16px; }
-</style>
-<div id="checktiva-mis-tickets-respaldo" aria-hidden="true">
-  <div class="respaldo-fondo" id="checktiva-respaldo-fondo"></div>
-  <div class="respaldo-panel">
-    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);padding:16px 24px;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="display:flex;height:36px;width:36px;align-items:center;justify-content:center;border-radius:999px;background:#8B6914;color:#000;font-size:18px;">🎫</div>
-        <div>
-          <div style="font-size:16px;font-weight:800;color:#fff;">Mis tickets</div>
-          <div id="checktiva-respaldo-sub" style="font-size:11px;color:rgba(255,255,255,0.4);">0 órdenes</div>
-        </div>
-      </div>
-      <button id="checktiva-respaldo-cerrar" style="display:flex;height:36px;width:36px;align-items:center;justify-content:center;border-radius:999px;background:rgba(255,255,255,0.1);color:#fff;font-size:18px;border:none;cursor:pointer;">✕</button>
-    </div>
-    <div id="checktiva-respaldo-lista" class="respaldo-lista"></div>
-  </div>
-</div>
-<script id="checktiva-mis-tickets-respaldo-js">
-(function(){
-  if(window.__checktivaRespaldoMisTickets) return;
-  window.__checktivaRespaldoMisTickets = true;
-  console.log('RESPALDO Mis Tickets activo: si React no abre, abre este');
-  var respaldo = document.getElementById('checktiva-mis-tickets-respaldo');
-  var lista = document.getElementById('checktiva-respaldo-lista');
-  var sub = document.getElementById('checktiva-respaldo-sub');
-  var misTicketsPedido = false;
-  function _hayDrawerReact(){
-    try{
-      var divs=document.getElementsByTagName('div');
-      for(var i=0;i<divs.length;i++){
-        var d=divs[i];
-        var cn=String(d.className||'');
-        if(cn.indexOf('z-[65]')===-1) continue;
-        var txt=String(d.textContent||'');
-        if(txt.indexOf('Mis tickets')!==-1 && txt.indexOf('órdenes')!==-1) return true;
-      }
-    }catch(e){}
-    return false;
-  }
-  function _ocultarInfo(){
-    try{
-      document.body.classList.add('checktiva-info-oculta');
-      document.body.classList.add('checktiva-mis-tickets-abierto');
-      document.body.classList.remove('checktiva-en-inicio');
-      var cas=document.getElementById('checktiva-casillas-finales');
-      if(cas){ cas.style.setProperty('display','none','important'); cas.style.setProperty('visibility','hidden','important'); }
-    }catch(e){}
-  }
-  function _mostrarInfoInicio(){
-    try{
-      document.body.classList.remove('checktiva-info-oculta');
-      document.body.classList.remove('checktiva-mis-tickets-abierto');
-      document.body.classList.add('checktiva-en-inicio');
-      var cas=document.getElementById('checktiva-casillas-finales');
-      if(cas){ cas.style.removeProperty('display'); cas.style.removeProperty('visibility'); cas.style.display=''; }
-    }catch(e){}
-  }
-  function _renderRespaldo(){
-    try{
-      var orders=[];
-      try{ orders=JSON.parse(localStorage.getItem('checking_orders')||'[]'); }catch(e){ orders=[]; }
-      // Si hay sesion, filtrar por email como hace React, si no mostrar todas para que no quede vacio
-      var user=null;
-      try{ user=JSON.parse(localStorage.getItem('checktiva_user')||localStorage.getItem('checking_user')||'null'); }catch(e){}
-      var filtradas = orders;
-      if(user && user.email){
-        var f=orders.filter(function(o){ return o.buyer && o.buyer.email===user.email; });
-        if(f.length>0) filtradas=f;
-      }
-      if(sub) sub.textContent = (user?user.name:'Sin sesión') + ' • ' + filtradas.length + ' órdenes';
-      if(!lista) return;
-      if(filtradas.length===0){
-        lista.innerHTML = '<div style="text-align:center;padding:60px 10px;color:#fff;"><div style="font-size:40px;">🎫</div><p style="font-weight:800;margin-top:12px;">Aún no tienes tickets</p><p style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:6px;">Cuando compres, aquí aparecen con el candado si están pendientes.</p></div>';
-        return;
-      }
-      var html='';
-      filtradas.forEach(function(o){
-        var fecha=''; try{ fecha=new Date(o.createdAt).toLocaleString('es-CO'); }catch(e){}
-        html += '<div class="respaldo-ticket"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;font-weight:800;color:#fff;">'+(o.id||'')+'</span><span style="font-size:10px;color:rgba(255,255,255,0.4);">'+fecha+'</span></div>';
-        (o.tickets||[]).forEach(function(t){
-          var pendiente = (t.status==='pendiente' || t.status==='pendiente_verificacion' || !t.qrGenerated);
-          var candado = pendiente ? '🔒 Pendiente de validación' : '✅ Validado';
-          var colorCandado = pendiente ? '#FFD700' : '#25D366';
-          html += '<div style="margin-top:12px;border-radius:12px;background:#0A0A0A;border:1px solid rgba(255,255,255,0.1);padding:12px;cursor:pointer;" data-ticket-id="'+(t.id||'')+'"><div style="display:flex;justify-content:space-between;"><span style="font-size:12px;font-weight:800;color:#fff;">TITULAR: '+(t.attendee&&t.attendee.name?t.attendee.name:'')+'</span><span style="font-size:10px;background:#8B6914;color:#000;padding:2px 8px;border-radius:999px;font-weight:800;">'+(t.id||'')+'</span></div><div style="margin-top:6px;font-size:11px;color:'+colorCandado+';font-weight:800;">'+candado+'</div><div style="margin-top:4px;font-size:11px;color:rgba(255,255,255,0.5);">'+(t.eventName||t.event||'')+' • '+(t.category||'')+'</div><div style="margin-top:8px;font-size:11px;color:#8B6914;font-weight:800;">Toca para ver tu Boleta / QR →</div></div>';
-        });
-        html += '</div>';
-      });
-      lista.innerHTML = html;
-      // Click en ticket -> cerrar respaldo y abrir QR modal de React si existe, si no avisar
-      try{
-        var cards = lista.querySelectorAll('[data-ticket-id]');
-        cards.forEach(function(card){
-          card.addEventListener('click', function(){
-            var tid = card.getAttribute('data-ticket-id');
-            cerrarRespaldo();
-            setTimeout(function(){
-              if(window.showQRModal) window.showQRModal(tid);
-              else if(window.checktivaShowQR) window.checktivaShowQR(tid);
-            }, 200);
-          });
-        });
-      }catch(e){}
-    }catch(e){}
-  }
-  function abrirRespaldo(){
-    _renderRespaldo();
-    if(respaldo){
-      respaldo.classList.add('checktiva-respaldo-abierto');
-      respaldo.setAttribute('aria-hidden','false');
-    }
-    _ocultarInfo();
-    try{ window.scrollTo(0,0); }catch(e){}
-  }
-  function cerrarRespaldo(){
-    if(respaldo){
-      respaldo.classList.remove('checktiva-respaldo-abierto');
-      respaldo.setAttribute('aria-hidden','true');
-    }
-    misTicketsPedido=false;
-    // Solo volver a mostrar INFO si React tampoco tiene ventana abierta
-    setTimeout(function(){
-      if(!_hayDrawerReact()) _mostrarInfoInicio();
-    }, 300);
-  }
-  document.getElementById('checktiva-respaldo-cerrar').addEventListener('click', cerrarRespaldo);
-  document.getElementById('checktiva-respaldo-fondo').addEventListener('click', cerrarRespaldo);
-  // Click en Mis Tickets: si React no abre en 800ms, abrir respaldo
-  document.addEventListener('click', function(e){
-    try{
-      var b=e.target && e.target.closest ? e.target.closest('button, a') : null;
-      if(!b) return;
-      var txt=String(b.textContent||'').trim();
-      if(txt.indexOf('Mis tickets')!==-1 && txt.length<60){
-        misTicketsPedido=true;
-        _ocultarInfo();
-        setTimeout(function(){
-          if(misTicketsPedido && !_hayDrawerReact()){
-            console.log('React no abrió Mis Tickets, abro respaldo');
-            abrirRespaldo();
-          }
-        }, 800);
-        // Si React si abrió, no hacer nada mas
-        setTimeout(function(){ misTicketsPedido=false; }, 3000);
-      }
-    }catch(e){}
-  }, true);
-  // Si el usuario cierra la ventanilla de React, asegurar que respaldo tambien se cierre
-  setInterval(function(){
-    try{
-      if(respaldo && respaldo.classList.contains('checktiva-respaldo-abierto') && _hayDrawerReact()){
-        // Ambos abiertos: dejar solo React, cerrar respaldo
-        cerrarRespaldo();
-      }
-    }catch(e){}
-  }, 1000);
-})();
-</script>
-
-
-<!-- INFO como imagen fija en inicio, sin accion en ningun lado -->
-<style id="checktiva-info-imagen-fija-css">
-  /* En inicio: la INFO es solo un bloque fijo, como imagen, arriba de la foto del codigo. No es ventana, no es boton, no se abre. */
-  body.checktiva-en-inicio #checktiva-casillas-finales{
-    display:block !important; visibility:visible !important;
-    position:static !important; pointer-events:none !important;
-  }
-  body.checktiva-en-inicio #checktiva-casillas-finales *{ pointer-events:none !important; }
-  /* En todo lo demas: eliminada por completo, nunca como ventana */
-  body:not(.checktiva-en-inicio) #checktiva-casillas-finales,
-  body:not(.checktiva-en-inicio) #checktiva-info-legal-inicio{
-    display:none !important; visibility:hidden !important; pointer-events:none !important;
-  }
-  #checktiva-info-legal-inicio{ display:none !important; }
-</style>
-<script id="checktiva-info-imagen-fija-js">
-(function(){
-  if(window.__checktivaInfoImagenFija) return;
-  window.__checktivaInfoImagenFija = true;
-  // Quitar cualquier accion que abra la INFO como ventana al oprimir casillas / admin / cualquier boton
-  document.addEventListener('click', function(e){
-    try{
-      var t = e.target;
-      // Si el clic es DENTRO de la INFO en inicio, no hacer nada: es solo imagen fija, no abre nada
-      var cas = document.getElementById('checktiva-casillas-finales');
-      if(cas && cas.contains(t)){
-        e.stopPropagation();
-        return;
-      }
-      // Si el clic es en un boton que antes abria la INFO como ventana, no dejar que la abra
-      var b = t && t.closest ? t.closest('button, a') : null;
-      if(!b) return;
-      var txt = String(b.textContent||'').trim().toLowerCase();
-      if(txt.indexOf('casilla')!==-1 || txt.indexOf('información importante')!==-1 || txt.indexOf('informacion importante')!==-1){
-        // Solo permitir que se vea en inicio como imagen fija, nunca como ventana
-        // No abrir nada, no hacer scroll a la INFO
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-    }catch(err){}
-  }, true);
-  // Asegurar que la INFO nunca quede como ventana fija: siempre estatica en inicio
-  setInterval(function(){
-    try{
-      var cas = document.getElementById('checktiva-casillas-finales');
-      if(!cas) return;
-      if(document.body.classList.contains('checktiva-en-inicio')){
-        cas.style.setProperty('position','static','important');
-      } else {
-        cas.style.setProperty('display','none','important');
-      }
-    }catch(e){}
-  }, 500);
-})();
-</script>
-
-
-<!-- FIX DEFINITIVO VENTAS: QR del inicio + INFO + footer SOLO fijos en inicio, eliminados de Ventas y de todo lo demas -->
-<style id="checktiva-ventas-solo-inicio-css">
-  /* Por defecto, QR del inicio e INFO nacen ocultos. Solo se muestran cuando el body dice que estamos en inicio puro */
-  #checktiva-qr-entrada, #checktiva-casillas-finales, #checktiva-footer-legal { display:none !important; }
-  body.checktiva-en-inicio #checktiva-qr-entrada { display:block !important; position:static !important; }
-  body.checktiva-en-inicio #checktiva-casillas-finales { display:block !important; position:static !important; }
-  body.checktiva-en-inicio #checktiva-footer-legal { display:block !important; position:static !important; }
-</style>
-<script id="checktiva-ventas-qr-info-solo-inicio-final">
-(function(){
-  if(window.__checktivaVentasSoloInicioFinal) return;
-  window.__checktivaVentasSoloInicioFinal = true;
-  function _txt(){ try{ return String(document.body ? document.body.innerText || '' : ''); }catch(e){ return ''; } }
-  function _hayModalFijo(){
-    try{
-      var els = document.querySelectorAll('div.fixed, div[style*="position: fixed"], div[style*="position:fixed"]');
-      for(var i=0;i<els.length;i++){
-        var el = els[i];
-        var st = window.getComputedStyle ? window.getComputedStyle(el) : null;
-        if(!st) continue;
-        if(st.display==='none' || st.visibility==='hidden') continue;
-        var z = parseInt(st.zIndex||'0',10);
-        if(z>=70) return true;
-      }
-    }catch(e){}
-    return false;
-  }
-  function _esInicioPuro(){
-    try{
-      // 1) Si la URL dice admin, nunca es inicio
-      var url = String(location.href||'');
-      if(url.indexOf('admin')!==-1) return false;
-      // 2) Si hay panel de admin visible (Ventas, Registros, Cuentas, Crear evento, Escaner, Panel) -> NO es inicio
-      var t = _txt();
-      if(t.indexOf('Panel de Administrador')!==-1) return false;
-      if(t.indexOf('Crear evento')!==-1 && t.indexOf('Sube desde tu celular')!==-1) return false;
-      // Ventas en admin: el admin tiene pestanas Ventas / Registros / Cuentas / Eventos
-      var btns = document.querySelectorAll('button');
-      for(var i=0;i<btns.length;i++){
-        var bt = String(btns[i].textContent||'').trim();
-        if(bt==='Ventas' || bt==='Registros' || bt==='Cuentas' || bt==='Escáner' || bt==='Scanner') {
-          // Solo cuenta si el boton esta VISIBLE. En inicio React deja los botones de admin en el DOM pero ocultos.
-          try{
-            var stB = window.getComputedStyle(btns[i]);
-            if(stB.display==='none' || stB.visibility==='hidden') continue;
-            if(btns[i].offsetParent===null && stB.position!=='fixed') continue;
-          }catch(e){}
-          return false;
-        }
-      }
-      if(t.indexOf('Total vendido')!==-1 && t.indexOf('Órdenes')!==-1) return false;
-      // 3) Si Mis Tickets / Carrito / Boleta / Login / Checkout / QR modal esta abierto -> NO es inicio
-      if(document.body.classList.contains('checktiva-mis-tickets-abierto')) return false;
-      if(document.getElementById('checktiva-qr-modal') && document.getElementById('checktiva-qr-modal').style.display!=='none' && document.getElementById('checktiva-qr-modal').style.display!=='') {
-        // QR modal abierto = no inicio, pero el modal mismo usa display flex cuando abre
-        var qm = document.getElementById('checktiva-qr-modal');
-        if(qm && window.getComputedStyle(qm).display!=='none') return false;
-      }
-      if(t.indexOf('Mis Tickets')!==-1 && t.indexOf('Boleta Oficial')!==-1) return false;
-      if(t.indexOf('PASO')!==-1 && t.indexOf('Titulares')!==-1) return false;
-      if(t.indexOf('Iniciar sesión')!==-1 && t.indexOf('Crear cuenta')!==-1 && document.querySelector('input[placeholder*="Correo"]')) {
-        // Login abierto
-        var login = document.querySelector('div.fixed');
-        if(login) return false;
-      }
-      if(_hayModalFijo()) {
-        // Si hay un modal fijo grande (carrito, boleta, login, checkout, admin) no es inicio
-        // Pero el inicio tambien tiene botones flotantes con z alto, por eso solo contamos modales que cubren pantalla
-        var mods = document.querySelectorAll('div.fixed.inset-0');
-        for(var j=0;j<mods.length;j++){
-          var st2 = window.getComputedStyle(mods[j]);
-          if(st2.display!=='none' && st2.visibility!=='hidden') return false;
-        }
-      }
-      // 4) Si estamos en inicio, debe verse el grid de eventos o el boton COMPRAR BOLETAS
-      if(t.indexOf('Próximos eventos')!==-1 || t.indexOf('COMPRAR BOLETAS')!==-1) return true;
-      // Si no hay nada de admin ni modal, asumimos inicio para no dejar la pagina sin INFO
-      return true;
-    }catch(e){ return false; }
-  }
-  function _aplicar(){
-    try{
-      var inicio = _esInicioPuro();
-      if(inicio){
-        document.body.classList.add('checktiva-en-inicio');
-        document.body.classList.remove('checktiva-no-inicio');
-      } else {
-        document.body.classList.remove('checktiva-en-inicio');
-        document.body.classList.add('checktiva-no-inicio');
-        // Forzar oculto en Ventas y todo lo demas, por si otro script lo mostro
-        var qr = document.getElementById('checktiva-qr-entrada');
-        if(qr) qr.style.setProperty('display','none','important');
-        var info = document.getElementById('checktiva-casillas-finales');
-        if(info) info.style.setProperty('display','none','important');
-        var foot = document.getElementById('checktiva-footer-legal');
-        if(foot) foot.style.setProperty('display','none','important');
-      }
-    }catch(e){}
-  }
-  setInterval(_aplicar, 400);
-  document.addEventListener('click', function(){ setTimeout(_aplicar, 150); setTimeout(_aplicar, 600); }, true);
-  setTimeout(_aplicar, 300);
-  console.log('✅ FIX VENTAS: QR + INFO + footer solo en inicio, eliminados de Ventas y todo lo demas');
-})();
-</script>
-
-<!-- FIX VENTAS ABRE SIEMPRE: solo hace que el toque en las pildoras del admin llegue a React. No toca INFO, QR, precios, pagos, cuentas ni eventos. -->
-<style id="checktiva-ventas-abre-siempre-css">
-  /* El toque que empieza en una pildora del admin es un toque, no un arrastre del header. */
-  [data-checktiva-barrita-quieta="1"] > button { touch-action: manipulation !important; pointer-events: auto !important; }
-  aside button { touch-action: manipulation !important; }
-  /* El header del admin no desliza ni hace snap: el que desliza es solo la barrita. */
-  #admin-bar-container:not([data-checktiva-barrita-quieta="1"]) { overflow-x: hidden !important; overflow-y: hidden !important; touch-action: auto !important; scroll-snap-type: none !important; scroll-behavior: auto !important; cursor: default !important; }
-  #admin-bar-container:not([data-checktiva-barrita-quieta="1"]) > * { scroll-snap-align: none !important; }
-  /* La barrita desliza con scroll nativo, sin snap ni smooth que la mueva sola despues del toque. */
-  [data-checktiva-barrita-quieta="1"] { touch-action: pan-x !important; scroll-snap-type: none !important; scroll-behavior: auto !important; overscroll-behavior-x: contain !important; }
-  /* Tabs Ventas dentro de Registros: que el toque llegue. */
-  [data-reg-tab] { touch-action: manipulation !important; pointer-events: auto !important; }
-</style>
-<script id="checktiva-ventas-abre-siempre-v1">
-(function(){
-  if(window.__checktivaVentasAbreSiempre) return;
-  window.__checktivaVentasAbreSiempre = true;
-
-  function _txtBoton(btn){ try{ return String(btn.textContent || '').trim(); }catch(e){ return ''; } }
-
-  // Que pestaña es este boton, si es una pildora del admin o un tab de Registros. Si no es, null.
-  function _tabDeBoton(btn){
-    try{
-      if(!btn) return null;
-      if(btn.hasAttribute && btn.hasAttribute('data-reg-tab')){
-        return { tipo: 'reg', tab: btn.getAttribute('data-reg-tab') };
-      }
-      var t = _txtBoton(btn);
-      var tl = t.toLowerCase();
-      var tab = null;
-      if(tl === 'dashboard' || tl === 'eventos' || tl === 'ventas' || tl === 'config') tab = tl;
-      else if(t === 'Ventas / Tickets') tab = 'ventas';
-      else if(t === 'Dashboard') tab = 'dashboard';
-      else if(t === 'Crear Eventos') tab = 'eventos';
-      else if(t === 'Configuración' || t === 'Configuracion') tab = 'config';
-      if(!tab) return null;
-      // Solo si esta en la barrita movil o en el sidebar del admin, no en otra parte.
-      var enBarrita = false, enSidebar = false;
-      try{
-        if(btn.closest){
-          enBarrita = !!btn.closest('[data-checktiva-barrita-quieta="1"]');
-          enSidebar = !!btn.closest('aside');
-          if(!enBarrita && !enSidebar){
-            var padre = btn.parentElement;
-            if(padre && String(padre.className || '').indexOf('lg:hidden') !== -1) enBarrita = true;
-          }
-        }
-      }catch(e){}
-      if(!enBarrita && !enSidebar) return null;
-      return { tipo: 'admin', tab: tab };
-    }catch(e){ return null; }
-  }
-
-  // El arrastre viejo del header pone isDown=true con mousedown/touchstart y luego mueve el scroll
-  // con mousemove/touchmove, y ese movimiento cancela el clic. Si el toque empieza en una pildora,
-  // no dejar que suba al header. Nunca preventDefault: el scroll nativo de la barrita sigue funcionando
-  // y el clic sigue siendo un clic para React.
-  document.addEventListener('mousedown', function(e){
-    try{
-      var btn = e.target && e.target.closest ? e.target.closest('button') : null;
-      if(!btn) return;
-      if(_tabDeBoton(btn)) { try{ e.stopPropagation(); }catch(e2){} }
-    }catch(err){}
-  }, true);
-  document.addEventListener('touchstart', function(e){
-    try{
-      var btn = e.target && e.target.closest ? e.target.closest('button') : null;
-      if(!btn) return;
-      if(_tabDeBoton(btn)) { try{ e.stopPropagation(); }catch(e2){} }
-    }catch(err){}
-  }, true);
-  // El touchmove que empieza en la barrita no sube al header: sin doble movimiento.
-  document.addEventListener('touchmove', function(e){
-    try{
-      var t = e.target;
-      if(!t || !t.closest) return;
-      var barrita = t.closest('[data-checktiva-barrita-quieta="1"]');
-      if(!barrita){
-        var padre = t.closest('button') ? t.closest('button').parentElement : null;
-        if(!(padre && String(padre.className || '').indexOf('lg:hidden') !== -1)) return;
-      }
-      try{ e.stopPropagation(); }catch(e2){}
-    }catch(err){}
-  }, { capture: true, passive: true });
-
-  // Si la vista pedida ya se ve, sin reintento.
-  function _vistaVisible(tab){
-    try{
-      var txt = String(document.body ? document.body.textContent || '' : '');
-      if(tab === 'ventas') return txt.indexOf('Ventas \u2022 Tickets personalizados') !== -1;
-      if(tab === 'dashboard') return txt.indexOf('Ventas recientes') !== -1;
-      if(tab === 'eventos') return txt.indexOf('Crear evento') !== -1 || txt.indexOf('Crear Eventos') !== -1;
-      if(tab === 'config') return txt.indexOf('Cuenta administradora') !== -1;
-    }catch(e){}
-    return false;
-  }
-
-  // Buscar la pildora ACTUAL en el DOM. React la recrea al cambiar de pestana, por eso se busca
-  // cada vez y nunca se guarda el nodo viejo.
-  function _pildoraActual(tab){
-    try{
-      var btns = document.querySelectorAll('button');
-      for(var i = 0; i < btns.length; i++){
-        var t = _txtBoton(btns[i]).toLowerCase();
-        if(t === tab){
-          var p = btns[i].parentElement;
-          if(p && String(p.className || '').indexOf('lg:hidden') !== -1) return btns[i];
-          if(btns[i].closest && btns[i].closest('[data-checktiva-barrita-quieta="1"]')) return btns[i];
-        }
-      }
-      for(var j = 0; j < btns.length; j++){
-        var s = _txtBoton(btns[j]);
-        if(tab === 'ventas' && s.indexOf('Ventas / Tickets') !== -1) return btns[j];
-        if(tab === 'dashboard' && s === 'Dashboard') return btns[j];
-        if(tab === 'eventos' && s === 'Crear Eventos') return btns[j];
-        if(tab === 'config' && (s === 'Configuración' || s === 'Configuracion')) return btns[j];
-      }
-    }catch(e){}
-    return null;
-  }
-
-  var _pedido = null;
-  function _reintentar(){
-    try{
-      if(!_pedido) return;
-      if(Date.now() - _pedido.t > 2500){ _pedido = null; return; }
-      if(_pedido.tipo === 'reg'){
-        var cuerpo = document.getElementById('checktiva-registros-body');
-        if(!cuerpo){ _pedido = null; return; }
-        var txtC = String(cuerpo.textContent || '');
-        var ok = true;
-        if(_pedido.tab === 'ventas') ok = txtC.indexOf('Registro de ventas') !== -1;
-        if(ok || _pedido.intentos >= 1){ _pedido = null; return; }
-        _pedido.intentos++;
-        var btnReg = document.querySelector('[data-reg-tab="' + _pedido.tab + '"]');
-        if(btnReg){ try{ btnReg.click(); }catch(e){} setTimeout(_reintentar, 600); }
-        return;
-      }
-      if(_vistaVisible(_pedido.tab)){ _pedido = null; return; }
-      if(_pedido.intentos >= 2){ _pedido = null; return; }
-      _pedido.intentos++;
-      var pill = _pildoraActual(_pedido.tab);
-      if(pill){ try{ pill.click(); }catch(e){} setTimeout(_reintentar, 600); }
-      else { _pedido = null; }
-    }catch(e){}
-  }
-
-  // Solo observar el clic, nunca frenarlo: no preventDefault, no stopPropagation, no mover nodos.
-  // Cada boton abre su propia funcion: ventas abre Ventas, dashboard abre Dashboard, y asi.
-  document.addEventListener('click', function(e){
-    try{
-      // CORTO: los clics que dispara el propio reintento con pill.click() NO son del usuario
-      // (isTrusted === false). Si no se ignoran, cada reintento crea otro pedido y la pildora
-      // se vuelve a oprimir sola sin parar: abre y cierra, abre y cierra. Solo valen los toques reales.
-      if(e && e.isTrusted === false) return;
-      var btn = e.target && e.target.closest ? e.target.closest('button') : null;
-      if(!btn) return;
-      var info = _tabDeBoton(btn);
-      if(!info) return;
-      _pedido = { tipo: info.tipo, tab: info.tab, t: Date.now(), intentos: 0 };
-      setTimeout(_reintentar, 500);
-      setTimeout(_reintentar, 1100);
-    }catch(err){}
-  }, true);
-})();
-</script>
-<!-- ESTABILIZADOR INICIO: la pagina vuelve a como estaba antes de la base de datos. La INFO, el QR del inicio y el footer son solo secciones fijas al final de la pagina, no ventanas. Un solo script manda sobre la clase de inicio y limpia los estilos en linea que los scripts viejos de INFO ponen para ocultar. NO toca base de datos, ni sincronizacion, ni lector QR, ni ventas, ni precios, ni eventos, ni cuentas. -->
-<script id="checktiva-estabilizador-inicio-v1">
-(function(){
-  if(window.__checktivaEstabilizadorInicio) return;
-  window.__checktivaEstabilizadorInicio = true;
-
-  function _esVisible(el){
-    try{
-      if(!el) return false;
-      if(el.style && el.style.display==='none') return false;
-      var st=window.getComputedStyle ? window.getComputedStyle(el) : null;
-      if(st && (st.display==='none' || st.visibility==='hidden')) return false;
-      return true;
-    }catch(e){ return false; }
-  }
-
-  // Admin VISIBLE de verdad (vista admin renderizada), no solo logueado en localStorage.
-  // "Ver web cliente" cierra la vista pero deja checking_admin en true, por eso aqui
-  // NO se mira localStorage: si la vista admin no se ve, es inicio.
-  function _hayAdminVisible(){
-    try{
-      var root=document.getElementById('root');
-      var txt=root ? (root.textContent||'') : (document.body ? (document.body.textContent||'') : '');
-      if(txt.indexOf('Panel de Administrador')!==-1) return true;
-      if(txt.indexOf('Panel Administrador')!==-1) return true;
-      if(txt.indexOf('Modo Administrador')!==-1) return true;
-      if(txt.indexOf('T\u00fa eres el administrador')!==-1) return true;
-      if(txt.indexOf('ADMIN MODE')!==-1) return true;
-      if(txt.indexOf('Crear Eventos')!==-1 && txt.indexOf('Ventas / Tickets')!==-1) return true;
-      if(txt.indexOf('Dashboard')!==-1 && txt.indexOf('Crear Eventos')!==-1) return true;
-      var btns=document.querySelectorAll('button');
-      for(var i=0;i<btns.length;i++){
-        var bt=String(btns[i].textContent||'').trim();
-        if(bt==='Ventas' || bt==='Registros' || bt==='Cuentas'){
-          try{
-            var stB=window.getComputedStyle(btns[i]);
-            if(stB.display==='none' || stB.visibility==='hidden') continue;
-            if(btns[i].offsetParent===null && stB.position!=='fixed') continue;
-          }catch(e){}
-          return true;
-        }
-      }
-    }catch(e){}
-    return false;
-  }
-
-  function _hayVentanaAbierta(){
-    try{
-      if(_hayAdminVisible()) return true;
-      // Ventanas de React: las unicas div.fixed.inset-0 visibles son Mis Tickets, carrito/checkout,
-      // login, registro y exito. Los botones flotantes (Comprar, WhatsApp, toast) NO son inset-0.
-      var divs=document.getElementsByTagName('div');
-      for(var i=0;i<divs.length;i++){
-        var d=divs[i];
-        var cn=String(d.className||'');
-        if(cn.indexOf('fixed')===-1 || cn.indexOf('inset-0')===-1) continue;
-        if(!_esVisible(d)) continue;
-        if(d.id==='checktiva-casillas-finales' || d.id==='checktiva-qr-entrada' || d.id==='checktiva-footer-legal') continue;
-        return true;
-      }
-      var resp=document.getElementById('checktiva-mis-tickets-respaldo');
-      if(resp && resp.classList.contains('checktiva-respaldo-abierto')) return true;
-      var qr=document.getElementById('checktiva-qr-modal');
-      if(qr && _esVisible(qr)) return true;
-      var edit=document.getElementById('checktiva-edit-modal');
-      if(edit && _esVisible(edit)) return true;
-      var cat=document.getElementById('checktiva-cat-modal');
-      if(cat && _esVisible(cat)) return true;
-      var reg=document.getElementById('checktiva-registros-overlay');
-      if(reg && _esVisible(reg)) return true;
-      var cuentas=document.getElementById('checktiva-cuentas-overlay');
-      if(cuentas && _esVisible(cuentas)) return true;
-      if(document.getElementById('panel-validacion-qr')) return true;
-    }catch(e){}
-    return false;
-  }
-
-  // Limpia SOLO los estilos en linea que los scripts viejos de INFO ponen para ocultar/mostrar.
-  // La hoja de estilo con la clase de inicio es la que manda. No se elimina ningun elemento.
-  // Solo se quita si de verdad hay algo puesto, para no disparar el observador en vano.
-  function _limpiarEstilosEnLinea(){
-    try{
-      var ids=['checktiva-casillas-finales','checktiva-qr-entrada','checktiva-footer-legal'];
-      for(var i=0;i<ids.length;i++){
-        var el=document.getElementById(ids[i]);
-        if(!el || !el.style) continue;
-        if(el.style.getPropertyValue('display')){ try{ el.style.removeProperty('display'); }catch(e){} }
-        if(el.style.getPropertyValue('visibility')){ try{ el.style.removeProperty('visibility'); }catch(e){} }
-        if(el.style.getPropertyValue('position')){ try{ el.style.removeProperty('position'); }catch(e){} }
-        if(el.style.display){ try{ el.style.display=''; }catch(e){} }
-      }
-    }catch(e){}
-  }
-
-  var _estadoAnteriorInicio = null; // null = aun no se sabe; true = estabamos en inicio; false = habia ventana/admin
-  function _aplicar(){
-    try{
-      var ventana=_hayVentanaAbierta();
-      var admin=_hayAdminVisible();
-      var inicio=!ventana && !admin;
-      if(inicio){
-        document.body.classList.remove('checktiva-info-oculta');
-        document.body.classList.remove('checktiva-mis-tickets-abierto');
-        document.body.classList.remove('checktiva-no-inicio');
-        document.body.classList.remove('checktiva-admin-abierto');
-        document.body.classList.add('checktiva-en-inicio');
-        _limpiarEstilosEnLinea();
-        // Acaba de cerrarse una ventana y volvimos a inicio: subir al inicio de verdad,
-        // arriba con los eventos, no quedarse abajo donde esta la INFO.
-        if(_estadoAnteriorInicio===false){
-          try{ window.scrollTo(0,0); }catch(e){}
-          try{ document.documentElement.scrollTop=0; }catch(e){}
-          try{ document.body.scrollTop=0; }catch(e){}
-        }
-      } else {
-        // Hay ventana o admin: quitar la clase de inicio para que la hoja oculte INFO/QR/footer.
-        // No poner clases de ocultar ni estilos en linea: el fondo de la ventana ya los tapa.
-        document.body.classList.remove('checktiva-en-inicio');
-        document.body.classList.remove('checktiva-info-oculta');
-        document.body.classList.remove('checktiva-mis-tickets-abierto');
-        document.body.classList.remove('checktiva-no-inicio');
-        _limpiarEstilosEnLinea();
-      }
-      _estadoAnteriorInicio=inicio;
-    }catch(e){}
-  }
-
-  // Al cerrar cualquier ventana (X, fondo, Cerrar, Ver web cliente, Volver),
-  // React cierra primero; este script solo revisa despues, sin frenar el clic.
-  // Nunca preventDefault, nunca stopPropagation, nunca mover nodos.
-  document.addEventListener('click', function(){
-    setTimeout(_aplicar, 200);
-    setTimeout(_aplicar, 600);
-    setTimeout(_aplicar, 1200);
-  }, true);
-
-  setInterval(_aplicar, 800);
-  try{
-    var _t=null;
-    var obs=new MutationObserver(function(){
-      if(_t) clearTimeout(_t);
-      _t=setTimeout(_aplicar, 120);
-    });
-    obs.observe(document.body, {childList:true, subtree:true, attributes:true, attributeFilter:['class','style']});
-  }catch(e){}
-  _aplicar();
-})();
-</script>
-
 </body>
 
 
