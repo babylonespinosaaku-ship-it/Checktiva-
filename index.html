@@ -16553,17 +16553,22 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
 
 <!-- FIX: Mis Tickets abre su ventanilla, no la INFO IMPORTANTE -->
 <style id="checktiva-fix-info-solo-inicio-css">
+  /* INFO por defecto oculta: solo se muestra cuando el script confirma que estamos en inicio sin ninguna ventana */
+  #checktiva-casillas-finales{ display:none !important; }
+  body.checktiva-en-inicio #checktiva-casillas-finales{ display:block !important; visibility:visible !important; }
   body.checktiva-info-oculta #checktiva-casillas-finales,
-  body.checktiva-info-oculta #checktiva-info-legal-inicio{ display:none !important; visibility:hidden !important; }
+  body.checktiva-info-oculta #checktiva-info-legal-inicio,
   body.checktiva-mis-tickets-abierto #checktiva-casillas-finales,
   body.checktiva-mis-tickets-abierto #checktiva-info-legal-inicio{ display:none !important; visibility:hidden !important; }
+  #checktiva-info-legal-inicio{ display:none !important; }
 </style>
 <script id="checktiva-fix-info-solo-inicio">
 (function(){
-  if(window.__checktivaInfoSoloInicioV4) return;
-  window.__checktivaInfoSoloInicioV4 = true;
-  console.log('FIX INFO solo inicio v4: deteccion directa sin selector con corchetes');
-  var ultimoClickMisTickets = 0;
+  if(window.__checktivaInfoSoloInicioV5) return;
+  window.__checktivaInfoSoloInicioV5 = true;
+  console.log('FIX INFO solo inicio v5: INFO solo en inicio, nunca en Mis Tickets ni en ninguna ventana');
+  var misTicketsPedido = false;
+  var contadorSinModal = 0;
   function _esVisible(el){
     try{
       if(!el) return false;
@@ -16573,14 +16578,12 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
       return true;
     }catch(e){ return false; }
   }
-  // Deteccion directa: recorrer divs y revisar className como texto, sin querySelector con corchetes
   function _hayMisTicketsAbierto(){
     try{
       var divs=document.getElementsByTagName('div');
       for(var i=0;i<divs.length;i++){
         var d=divs[i];
         var cn=String(d.className||'');
-        // La ventanilla de Mis Tickets es la unica con z-[65] y con el titulo + ordenes
         if(cn.indexOf('z-[65]')===-1) continue;
         var txt=String(d.textContent||'');
         if(txt.indexOf('Mis tickets')!==-1 && txt.indexOf('órdenes')!==-1) return true;
@@ -16588,20 +16591,19 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
     }catch(e){}
     return false;
   }
-  function _hayOtroModal(){
+  function _hayCualquierVentana(){
     try{
+      if(_hayMisTicketsAbierto()) return true;
       var qr=document.getElementById('checktiva-qr-modal');
       if(qr && _esVisible(qr)) return true;
       var edit=document.getElementById('checktiva-edit-modal');
       if(edit && _esVisible(edit)) return true;
       var cat=document.getElementById('checktiva-cat-modal');
       if(cat && _esVisible(cat)) return true;
-      // Admin
       var root=document.getElementById('root');
       var txtRoot=root ? (root.textContent||'') : '';
       if(txtRoot.indexOf('Panel Administrador')!==-1) return true;
       if(document.querySelector('input[placeholder*="Usuario administrador"]')) return true;
-      // Carrito / login / Boleta: buscar div fijo visible con esos textos, por className directo
       var divs=document.getElementsByTagName('div');
       for(var j=0;j<divs.length;j++){
         var d2=divs[j];
@@ -16611,19 +16613,21 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
         var ft=String(d2.textContent||'');
         if(ft.indexOf('Tu carrito')!==-1 && ft.length<3000) return true;
         if(ft.indexOf('Boleta Oficial')!==-1) return true;
+        if(ft.indexOf('Iniciar sesión')!==-1 && ft.indexOf('Crear cuenta')!==-1) return true;
       }
     }catch(e){}
     return false;
   }
-  function _ocultar(){
+  function _ocultarInfo(){
     try{
       document.body.classList.add('checktiva-info-oculta');
       document.body.classList.add('checktiva-mis-tickets-abierto');
+      document.body.classList.remove('checktiva-en-inicio');
       var cas=document.getElementById('checktiva-casillas-finales');
       if(cas){ cas.style.setProperty('display','none','important'); cas.style.setProperty('visibility','hidden','important'); }
       var info=document.getElementById('checktiva-info-legal-inicio');
       if(info){ info.style.setProperty('display','none','important'); }
-      // Subir ventanilla de Mis Tickets al frente si existe
+      // Ventanilla de Mis Tickets al frente
       try{
         var divs=document.getElementsByTagName('div');
         for(var k=0;k<divs.length;k++){
@@ -16642,37 +16646,86 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
       }catch(e2){}
     }catch(e){}
   }
-  function _mostrar(){
+  function _mostrarSoloEnInicio(){
     try{
       document.body.classList.remove('checktiva-info-oculta');
       document.body.classList.remove('checktiva-mis-tickets-abierto');
+      document.body.classList.add('checktiva-en-inicio');
       var cas=document.getElementById('checktiva-casillas-finales');
       if(cas){ cas.style.removeProperty('display'); cas.style.removeProperty('visibility'); cas.style.display=''; }
     }catch(e){}
   }
   function _aplicar(){
     try{
-      var haceClick = (Date.now() - ultimoClickMisTickets) < 5000;
-      var ocultar = haceClick || _hayMisTicketsAbierto() || _hayOtroModal();
-      if(ocultar) _ocultar(); else _mostrar();
+      // Si se pidio Mis Tickets, NO volver a mostrar INFO hasta que se cierre de verdad
+      if(misTicketsPedido){
+        _ocultarInfo();
+        // Solo liberar si la ventanilla ya no esta Y pasaron 3 chequeos sin ventana
+        if(!_hayCualquierVentana()){
+          contadorSinModal++;
+          if(contadorSinModal>=3){
+            misTicketsPedido=false;
+            contadorSinModal=0;
+            _mostrarSoloEnInicio();
+          }
+        } else {
+          contadorSinModal=0;
+        }
+        return;
+      }
+      if(_hayCualquierVentana()){
+        contadorSinModal=0;
+        _ocultarInfo();
+      } else {
+        contadorSinModal++;
+        if(contadorSinModal>=2) _mostrarSoloEnInicio();
+      }
     }catch(e){}
   }
+  // Cualquier boton que abre una ventana -> ocultar INFO y no restaurarla hasta cerrar
   document.addEventListener('click', function(e){
     try{
       var b=e.target && e.target.closest ? e.target.closest('button, a') : null;
       if(!b) return;
       var txt=String(b.textContent||'').trim();
-      if(txt.indexOf('Mis tickets')!==-1 && txt.length<60){
-        ultimoClickMisTickets=Date.now();
-        _ocultar();
-        setTimeout(_ocultar, 150);
-        setTimeout(_ocultar, 400);
-        setTimeout(_ocultar, 900);
-        setTimeout(_aplicar, 1500);
-        setTimeout(function(){ try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(e2){ try{ window.scrollTo(0,0); }catch(e3){} } }, 200);
+      // Mis Tickets, Panel Admin, Carrito, Iniciar sesion: todos ocultan INFO
+      if((txt.indexOf('Mis tickets')!==-1 && txt.length<60) || txt.indexOf('Panel Admin')!==-1 || txt.indexOf('Carrito')!==-1 || txt.indexOf('Iniciar sesión')!==-1){
+        if(txt.indexOf('Mis tickets')!==-1) misTicketsPedido=true;
+        contadorSinModal=0;
+        _ocultarInfo();
+        setTimeout(_ocultarInfo, 150);
+        setTimeout(_ocultarInfo, 400);
+        setTimeout(_ocultarInfo, 900);
+        if(txt.indexOf('Mis tickets')!==-1){
+          setTimeout(function(){ try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(e2){ try{ window.scrollTo(0,0); }catch(e3){} } }, 200);
+        }
+        return;
+      }
+      // Cerrar Mis Tickets: X o fondo oscuro dentro de la ventanilla
+      if(misTicketsPedido){
+        try{
+          var enDrawer = b.closest ? b.closest('div') : null;
+          // Buscar si el clic fue dentro de la ventanilla y es el boton de cerrar (X) o el fondo
+          var divs=document.getElementsByTagName('div');
+          for(var q=0;q<divs.length;q++){
+            var d=divs[q];
+            var cn=String(d.className||'');
+            if(cn.indexOf('z-[65]')===-1) continue;
+            if(!d.contains(b)) continue;
+            var clsBtn=String(b.className||'');
+            var txtBtn=String(b.textContent||'').trim();
+            if(clsBtn.indexOf('bg-black/70')!==-1 || txtBtn==='' || txtBtn==='×' || txtBtn==='X' || txtBtn==='✕'){
+              // Dar tiempo a React a cerrar, luego liberar
+              setTimeout(function(){ misTicketsPedido=false; contadorSinModal=0; _aplicar(); }, 300);
+              break;
+            }
+          }
+        }catch(e2){}
       }
     }catch(e){}
   }, true);
+  // Al abrir el enlace, empezar arriba en inicio, no abajo en la INFO
+  try{ window.scrollTo(0,0); }catch(e){}
   setInterval(_aplicar, 400);
   try{
     var obs=new MutationObserver(function(){ _aplicar(); });
