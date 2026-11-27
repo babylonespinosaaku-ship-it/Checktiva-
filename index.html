@@ -16735,6 +16735,173 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
 })();
 </script>
 
+
+<!-- RESPALDO MIS TICKETS: si la ventanilla de React no abre en 800ms, abre esta. No toca nada mas. -->
+<style id="checktiva-mis-tickets-respaldo-css">
+  #checktiva-mis-tickets-respaldo{ display:none; position:fixed; inset:0; z-index:999999; justify-content:flex-end; }
+  #checktiva-mis-tickets-respaldo.checktiva-respaldo-abierto{ display:flex !important; }
+  #checktiva-mis-tickets-respaldo .respaldo-fondo{ position:absolute; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); }
+  #checktiva-mis-tickets-respaldo .respaldo-panel{ position:relative; display:flex; flex-direction:column; height:100%; width:100%; max-width:480px; background:#0F0F0F; border-left:1px solid rgba(255,255,255,0.1); }
+  #checktiva-mis-tickets-respaldo .respaldo-lista{ flex:1; overflow:auto; padding:20px; display:flex; flex-direction:column; gap:16px; }
+  #checktiva-mis-tickets-respaldo .respaldo-ticket{ border-radius:20px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); padding:16px; }
+</style>
+<div id="checktiva-mis-tickets-respaldo" aria-hidden="true">
+  <div class="respaldo-fondo" id="checktiva-respaldo-fondo"></div>
+  <div class="respaldo-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);padding:16px 24px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;height:36px;width:36px;align-items:center;justify-content:center;border-radius:999px;background:#8B6914;color:#000;font-size:18px;">🎫</div>
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#fff;">Mis tickets</div>
+          <div id="checktiva-respaldo-sub" style="font-size:11px;color:rgba(255,255,255,0.4);">0 órdenes</div>
+        </div>
+      </div>
+      <button id="checktiva-respaldo-cerrar" style="display:flex;height:36px;width:36px;align-items:center;justify-content:center;border-radius:999px;background:rgba(255,255,255,0.1);color:#fff;font-size:18px;border:none;cursor:pointer;">✕</button>
+    </div>
+    <div id="checktiva-respaldo-lista" class="respaldo-lista"></div>
+  </div>
+</div>
+<script id="checktiva-mis-tickets-respaldo-js">
+(function(){
+  if(window.__checktivaRespaldoMisTickets) return;
+  window.__checktivaRespaldoMisTickets = true;
+  console.log('RESPALDO Mis Tickets activo: si React no abre, abre este');
+  var respaldo = document.getElementById('checktiva-mis-tickets-respaldo');
+  var lista = document.getElementById('checktiva-respaldo-lista');
+  var sub = document.getElementById('checktiva-respaldo-sub');
+  var misTicketsPedido = false;
+  function _hayDrawerReact(){
+    try{
+      var divs=document.getElementsByTagName('div');
+      for(var i=0;i<divs.length;i++){
+        var d=divs[i];
+        var cn=String(d.className||'');
+        if(cn.indexOf('z-[65]')===-1) continue;
+        var txt=String(d.textContent||'');
+        if(txt.indexOf('Mis tickets')!==-1 && txt.indexOf('órdenes')!==-1) return true;
+      }
+    }catch(e){}
+    return false;
+  }
+  function _ocultarInfo(){
+    try{
+      document.body.classList.add('checktiva-info-oculta');
+      document.body.classList.add('checktiva-mis-tickets-abierto');
+      document.body.classList.remove('checktiva-en-inicio');
+      var cas=document.getElementById('checktiva-casillas-finales');
+      if(cas){ cas.style.setProperty('display','none','important'); cas.style.setProperty('visibility','hidden','important'); }
+    }catch(e){}
+  }
+  function _mostrarInfoInicio(){
+    try{
+      document.body.classList.remove('checktiva-info-oculta');
+      document.body.classList.remove('checktiva-mis-tickets-abierto');
+      document.body.classList.add('checktiva-en-inicio');
+      var cas=document.getElementById('checktiva-casillas-finales');
+      if(cas){ cas.style.removeProperty('display'); cas.style.removeProperty('visibility'); cas.style.display=''; }
+    }catch(e){}
+  }
+  function _renderRespaldo(){
+    try{
+      var orders=[];
+      try{ orders=JSON.parse(localStorage.getItem('checking_orders')||'[]'); }catch(e){ orders=[]; }
+      // Si hay sesion, filtrar por email como hace React, si no mostrar todas para que no quede vacio
+      var user=null;
+      try{ user=JSON.parse(localStorage.getItem('checktiva_user')||localStorage.getItem('checking_user')||'null'); }catch(e){}
+      var filtradas = orders;
+      if(user && user.email){
+        var f=orders.filter(function(o){ return o.buyer && o.buyer.email===user.email; });
+        if(f.length>0) filtradas=f;
+      }
+      if(sub) sub.textContent = (user?user.name:'Sin sesión') + ' • ' + filtradas.length + ' órdenes';
+      if(!lista) return;
+      if(filtradas.length===0){
+        lista.innerHTML = '<div style="text-align:center;padding:60px 10px;color:#fff;"><div style="font-size:40px;">🎫</div><p style="font-weight:800;margin-top:12px;">Aún no tienes tickets</p><p style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:6px;">Cuando compres, aquí aparecen con el candado si están pendientes.</p></div>';
+        return;
+      }
+      var html='';
+      filtradas.forEach(function(o){
+        var fecha=''; try{ fecha=new Date(o.createdAt).toLocaleString('es-CO'); }catch(e){}
+        html += '<div class="respaldo-ticket"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;font-weight:800;color:#fff;">'+(o.id||'')+'</span><span style="font-size:10px;color:rgba(255,255,255,0.4);">'+fecha+'</span></div>';
+        (o.tickets||[]).forEach(function(t){
+          var pendiente = (t.status==='pendiente' || t.status==='pendiente_verificacion' || !t.qrGenerated);
+          var candado = pendiente ? '🔒 Pendiente de validación' : '✅ Validado';
+          var colorCandado = pendiente ? '#FFD700' : '#25D366';
+          html += '<div style="margin-top:12px;border-radius:12px;background:#0A0A0A;border:1px solid rgba(255,255,255,0.1);padding:12px;cursor:pointer;" data-ticket-id="'+(t.id||'')+'"><div style="display:flex;justify-content:space-between;"><span style="font-size:12px;font-weight:800;color:#fff;">TITULAR: '+(t.attendee&&t.attendee.name?t.attendee.name:'')+'</span><span style="font-size:10px;background:#8B6914;color:#000;padding:2px 8px;border-radius:999px;font-weight:800;">'+(t.id||'')+'</span></div><div style="margin-top:6px;font-size:11px;color:'+colorCandado+';font-weight:800;">'+candado+'</div><div style="margin-top:4px;font-size:11px;color:rgba(255,255,255,0.5);">'+(t.eventName||t.event||'')+' • '+(t.category||'')+'</div><div style="margin-top:8px;font-size:11px;color:#8B6914;font-weight:800;">Toca para ver tu Boleta / QR →</div></div>';
+        });
+        html += '</div>';
+      });
+      lista.innerHTML = html;
+      // Click en ticket -> cerrar respaldo y abrir QR modal de React si existe, si no avisar
+      try{
+        var cards = lista.querySelectorAll('[data-ticket-id]');
+        cards.forEach(function(card){
+          card.addEventListener('click', function(){
+            var tid = card.getAttribute('data-ticket-id');
+            cerrarRespaldo();
+            setTimeout(function(){
+              if(window.showQRModal) window.showQRModal(tid);
+              else if(window.checktivaShowQR) window.checktivaShowQR(tid);
+            }, 200);
+          });
+        });
+      }catch(e){}
+    }catch(e){}
+  }
+  function abrirRespaldo(){
+    _renderRespaldo();
+    if(respaldo){
+      respaldo.classList.add('checktiva-respaldo-abierto');
+      respaldo.setAttribute('aria-hidden','false');
+    }
+    _ocultarInfo();
+    try{ window.scrollTo(0,0); }catch(e){}
+  }
+  function cerrarRespaldo(){
+    if(respaldo){
+      respaldo.classList.remove('checktiva-respaldo-abierto');
+      respaldo.setAttribute('aria-hidden','true');
+    }
+    misTicketsPedido=false;
+    // Solo volver a mostrar INFO si React tampoco tiene ventana abierta
+    setTimeout(function(){
+      if(!_hayDrawerReact()) _mostrarInfoInicio();
+    }, 300);
+  }
+  document.getElementById('checktiva-respaldo-cerrar').addEventListener('click', cerrarRespaldo);
+  document.getElementById('checktiva-respaldo-fondo').addEventListener('click', cerrarRespaldo);
+  // Click en Mis Tickets: si React no abre en 800ms, abrir respaldo
+  document.addEventListener('click', function(e){
+    try{
+      var b=e.target && e.target.closest ? e.target.closest('button, a') : null;
+      if(!b) return;
+      var txt=String(b.textContent||'').trim();
+      if(txt.indexOf('Mis tickets')!==-1 && txt.length<60){
+        misTicketsPedido=true;
+        _ocultarInfo();
+        setTimeout(function(){
+          if(misTicketsPedido && !_hayDrawerReact()){
+            console.log('React no abrió Mis Tickets, abro respaldo');
+            abrirRespaldo();
+          }
+        }, 800);
+        // Si React si abrió, no hacer nada mas
+        setTimeout(function(){ misTicketsPedido=false; }, 3000);
+      }
+    }catch(e){}
+  }, true);
+  // Si el usuario cierra la ventanilla de React, asegurar que respaldo tambien se cierre
+  setInterval(function(){
+    try{
+      if(respaldo && respaldo.classList.contains('checktiva-respaldo-abierto') && _hayDrawerReact()){
+        // Ambos abiertos: dejar solo React, cerrar respaldo
+        cerrarRespaldo();
+      }
+    }catch(e){}
+  }, 1000);
+})();
+</script>
+
 </body>
 
 
