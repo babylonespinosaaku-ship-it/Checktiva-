@@ -7393,7 +7393,7 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
   window.__checktivaNubeTicketsBajar = bajarYMezclar;
   window.__checktivaNubeTicketsSubir = function(){ return subirSiCambio(false); };
 })();
-</script>
+<\/script>
 
 
 <!-- Checktiva - Links legales al pie, agregado sin tocar el resto -->
@@ -16975,6 +16975,112 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
 })();
 </script>
 
+
+<!-- FIX DEFINITIVO VENTAS: QR del inicio + INFO + footer SOLO fijos en inicio, eliminados de Ventas y de todo lo demas -->
+<style id="checktiva-ventas-solo-inicio-css">
+  /* Por defecto, QR del inicio e INFO nacen ocultos. Solo se muestran cuando el body dice que estamos en inicio puro */
+  #checktiva-qr-entrada, #checktiva-casillas-finales, #checktiva-footer-legal { display:none !important; }
+  body.checktiva-en-inicio #checktiva-qr-entrada { display:block !important; position:static !important; }
+  body.checktiva-en-inicio #checktiva-casillas-finales { display:block !important; position:static !important; }
+  body.checktiva-en-inicio #checktiva-footer-legal { display:block !important; position:static !important; }
+</style>
+<script id="checktiva-ventas-qr-info-solo-inicio-final">
+(function(){
+  if(window.__checktivaVentasSoloInicioFinal) return;
+  window.__checktivaVentasSoloInicioFinal = true;
+  function _txt(){ try{ return String(document.body ? document.body.innerText || '' : ''); }catch(e){ return ''; } }
+  function _hayModalFijo(){
+    try{
+      var els = document.querySelectorAll('div.fixed, div[style*="position: fixed"], div[style*="position:fixed"]');
+      for(var i=0;i<els.length;i++){
+        var el = els[i];
+        var st = window.getComputedStyle ? window.getComputedStyle(el) : null;
+        if(!st) continue;
+        if(st.display==='none' || st.visibility==='hidden') continue;
+        var z = parseInt(st.zIndex||'0',10);
+        if(z>=70) return true;
+      }
+    }catch(e){}
+    return false;
+  }
+  function _esInicioPuro(){
+    try{
+      // 1) Si la URL dice admin, nunca es inicio
+      var url = String(location.href||'');
+      if(url.indexOf('admin')!==-1) return false;
+      // 2) Si hay panel de admin visible (Ventas, Registros, Cuentas, Crear evento, Escaner, Panel) -> NO es inicio
+      var t = _txt();
+      if(t.indexOf('Panel de Administrador')!==-1) return false;
+      if(t.indexOf('Crear evento')!==-1 && t.indexOf('Sube desde tu celular')!==-1) return false;
+      // Ventas en admin: el admin tiene pestanas Ventas / Registros / Cuentas / Eventos
+      var btns = document.querySelectorAll('button');
+      for(var i=0;i<btns.length;i++){
+        var bt = String(btns[i].textContent||'').trim();
+        if(bt==='Ventas' || bt==='Registros' || bt==='Cuentas' || bt==='Escáner' || bt==='Scanner') {
+          // Solo cuenta si el boton esta VISIBLE. En inicio React deja los botones de admin en el DOM pero ocultos.
+          try{
+            var stB = window.getComputedStyle(btns[i]);
+            if(stB.display==='none' || stB.visibility==='hidden') continue;
+            if(btns[i].offsetParent===null && stB.position!=='fixed') continue;
+          }catch(e){}
+          return false;
+        }
+      }
+      if(t.indexOf('Total vendido')!==-1 && t.indexOf('Órdenes')!==-1) return false;
+      // 3) Si Mis Tickets / Carrito / Boleta / Login / Checkout / QR modal esta abierto -> NO es inicio
+      if(document.body.classList.contains('checktiva-mis-tickets-abierto')) return false;
+      if(document.getElementById('checktiva-qr-modal') && document.getElementById('checktiva-qr-modal').style.display!=='none' && document.getElementById('checktiva-qr-modal').style.display!=='') {
+        // QR modal abierto = no inicio, pero el modal mismo usa display flex cuando abre
+        var qm = document.getElementById('checktiva-qr-modal');
+        if(qm && window.getComputedStyle(qm).display!=='none') return false;
+      }
+      if(t.indexOf('Mis Tickets')!==-1 && t.indexOf('Boleta Oficial')!==-1) return false;
+      if(t.indexOf('PASO')!==-1 && t.indexOf('Titulares')!==-1) return false;
+      if(t.indexOf('Iniciar sesión')!==-1 && t.indexOf('Crear cuenta')!==-1 && document.querySelector('input[placeholder*="Correo"]')) {
+        // Login abierto
+        var login = document.querySelector('div.fixed');
+        if(login) return false;
+      }
+      if(_hayModalFijo()) {
+        // Si hay un modal fijo grande (carrito, boleta, login, checkout, admin) no es inicio
+        // Pero el inicio tambien tiene botones flotantes con z alto, por eso solo contamos modales que cubren pantalla
+        var mods = document.querySelectorAll('div.fixed.inset-0');
+        for(var j=0;j<mods.length;j++){
+          var st2 = window.getComputedStyle(mods[j]);
+          if(st2.display!=='none' && st2.visibility!=='hidden') return false;
+        }
+      }
+      // 4) Si estamos en inicio, debe verse el grid de eventos o el boton COMPRAR BOLETAS
+      if(t.indexOf('Próximos eventos')!==-1 || t.indexOf('COMPRAR BOLETAS')!==-1) return true;
+      // Si no hay nada de admin ni modal, asumimos inicio para no dejar la pagina sin INFO
+      return true;
+    }catch(e){ return false; }
+  }
+  function _aplicar(){
+    try{
+      var inicio = _esInicioPuro();
+      if(inicio){
+        document.body.classList.add('checktiva-en-inicio');
+        document.body.classList.remove('checktiva-no-inicio');
+      } else {
+        document.body.classList.remove('checktiva-en-inicio');
+        document.body.classList.add('checktiva-no-inicio');
+        // Forzar oculto en Ventas y todo lo demas, por si otro script lo mostro
+        var qr = document.getElementById('checktiva-qr-entrada');
+        if(qr) qr.style.setProperty('display','none','important');
+        var info = document.getElementById('checktiva-casillas-finales');
+        if(info) info.style.setProperty('display','none','important');
+        var foot = document.getElementById('checktiva-footer-legal');
+        if(foot) foot.style.setProperty('display','none','important');
+      }
+    }catch(e){}
+  }
+  setInterval(_aplicar, 400);
+  document.addEventListener('click', function(){ setTimeout(_aplicar, 150); setTimeout(_aplicar, 600); }, true);
+  setTimeout(_aplicar, 300);
+  console.log('✅ FIX VENTAS: QR + INFO + footer solo en inicio, eliminados de Ventas y todo lo demas');
+})();
+</script>
 </body>
 
 
