@@ -5220,25 +5220,7 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
 </script>
 
 
-<!-- INFORMACIÓN IMPORTANTE - 7 casillas una debajo de otra, al final de todo, después del footer -->
-<section id="checktiva-casillas-finales" style="max-width:1280px;margin:0 auto;padding:28px 24px 40px 24px;background:#0A0A0A;border-top:1px solid rgba(139,105,20,0.35);">
-  <div style="max-width:900px;margin:0 auto;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-      <span style="font-size:22px;">⚠️</span>
-      <h2 style="margin:0;font-size:16px;font-weight:900;color:#FFD700;letter-spacing:0.3px;">INFORMACIÓN IMPORTANTE — CÓDIGOS Y BOLETAS CHECKTIVA</h2>
-    </div>
-    <div style="display:grid;gap:10px;font-size:13px;line-height:1.65;color:rgba(255,255,255,0.78);">
-      <div style="background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.25);border-radius:14px;padding:14px 16px;"><b style="color:#FFD700;">1. Cada código / boleta es intransferible y único por persona.</b> Está a nombre del titular registrado en la compra. Solo ingresa la persona cuyo nombre y documento coinciden con la boleta. No se permite ingreso con código de otra persona.</div>
-      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:14px 16px;"><b style="color:#fff;">2. CheckTiva no se hace responsable de códigos compartidos, copias, PDF reenviados, capturas de pantalla o códigos falsificados.</b> Si compartes tu QR, otra persona puede usarlo antes que tú y tu código quedará marcado como USADO. No compartas tu QR en redes, grupos o WhatsApp.</div>
-      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:14px 16px;"><b style="color:#fff;">3. Cada código solo se puede usar una vez.</b> Al ser leído y verificado con el lector oficial en puerta, queda marcado como USADO y no permite otro ingreso. El código solo es válido para el evento, fecha y localidad comprada.</div>
-      <div style="background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.35);border-radius:14px;padding:14px 16px;"><b style="color:#FF6B6B;">4. No se hace devolución de sumas pagadas si el código ya fue leído y verificado.</b> Si el código ya fue escaneado en puerta, se entiende como usado y no hay reembolso.</div>
-      <div style="background:rgba(0,255,136,0.07);border:1px solid rgba(0,255,136,0.30);border-radius:14px;padding:14px 16px;"><b style="color:#00FF88;">5. Si el código NO ha sido verificado con lector, puedes solicitar reembolso.</b> Si no asististe al festival y tu código NO fue leído ni verificado, contacta al servicio y atención al cliente de <b style="color:#FFD700;">checktiva.com</b> y solicita el reembolso. Se verificará en sistema que el código esté sin usar.</div>
-      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:14px 16px;"><b style="color:#fff;">6. En puerta, presenta tu documento de identidad original junto con el código.</b> El nombre y documento deben coincidir con el titular. Llega con tiempo. El ingreso se verifica solo con el lector oficial CheckTiva, no con fotos.</div>
-      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:14px 16px;"><b style="color:#fff;">7. Recupera tu código solo desde tu cuenta en Mis tickets.</b> Si lo pierdes, entra con tu cuenta y descárgalo de nuevo. CheckTiva nunca te pedirá tu contraseña por WhatsApp. Si alguien te ofrece códigos por fuera de checktiva.com, no son válidos.</div>
-    </div>
-    <p style="margin:14px 0 0 0;font-size:11px;color:rgba(255,255,255,0.40);text-align:center;">Al comprar en CheckTiva aceptas estas condiciones. checktiva.com • Soporte y atención al cliente en checktiva.com</p>
-  </div>
-</section>
+<!-- INFORMACIÓN IMPORTANTE movida justo debajo de la foto del código (QR entrada) -->
 
 
 
@@ -7393,11 +7375,14 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
 })();
 </script>
 
-</body></html>';
-    return h;
-  }
-})();
-</script>
+
+<!-- Checktiva - Links legales al pie, agregado sin tocar el resto -->
+<div id="checktiva-footer-legal" style="text-align:center;padding:18px 12px 22px;font-size:12px;color:#ccc;background:#000;border-top:1px solid rgba(255,215,0,0.35);">
+  © 2026 Checktiva • <a href="terminos.html" style="color:#FFD700;font-weight:700;text-decoration:underline;">Términos y Condiciones</a> &nbsp;|&nbsp; <a href="privacidad.html" style="color:#FFD700;font-weight:700;text-decoration:underline;">Política de Privacidad</a><br>
+  <span style="color:#aaa;">WhatsApp 3006015633 • checktivaofficial@gmail.com</span>
+</div>
+
+
 <script id="checktiva-sync-precios-titulares">
 (function(){
   console.log('🔄 Sync Precios Titulares iniciado - cada titular por aparte, sin mezclarse');
@@ -13128,6 +13113,28 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
   </div>
 </section>
 
+<!-- INFORMACIÓN IMPORTANTE - justo debajo de la foto del código, fija solo en inicio -->
+<!-- INFORMACIÓN IMPORTANTE - 7 casillas una debajo de otra, al final de todo, después del footer -->
+<section id="checktiva-casillas-finales" style="max-width:1280px;margin:0 auto;padding:28px 24px 40px 24px;background:#0A0A0A;border-top:1px solid rgba(139,105,20,0.35);">
+  <div style="max-width:900px;margin:0 auto;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <span style="font-size:22px;">⚠️</span>
+      <h2 style="margin:0;font-size:16px;font-weight:900;color:#FFD700;letter-spacing:0.3px;">INFORMACIÓN IMPORTANTE — CÓDIGOS Y BOLETAS CHECKTIVA</h2>
+    </div>
+    <div style="display:grid;gap:10px;font-size:13px;line-height:1.65;color:rgba(255,255,255,0.78);">
+      <div style="background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.25);border-radius:14px;padding:14px 16px;"><b style="color:#FFD700;">1. Cada código / boleta es intransferible y único por persona.</b> Está a nombre del titular registrado en la compra. Solo ingresa la persona cuyo nombre y documento coinciden con la boleta. No se permite ingreso con código de otra persona.</div>
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:14px 16px;"><b style="color:#fff;">2. CheckTiva no se hace responsable de códigos compartidos, copias, PDF reenviados, capturas de pantalla o códigos falsificados.</b> Si compartes tu QR, otra persona puede usarlo antes que tú y tu código quedará marcado como USADO. No compartas tu QR en redes, grupos o WhatsApp.</div>
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:14px 16px;"><b style="color:#fff;">3. Cada código solo se puede usar una vez.</b> Al ser leído y verificado con el lector oficial en puerta, queda marcado como USADO y no permite otro ingreso. El código solo es válido para el evento, fecha y localidad comprada.</div>
+      <div style="background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.35);border-radius:14px;padding:14px 16px;"><b style="color:#FF6B6B;">4. No se hace devolución de sumas pagadas si el código ya fue leído y verificado.</b> Si el código ya fue escaneado en puerta, se entiende como usado y no hay reembolso.</div>
+      <div style="background:rgba(0,255,136,0.07);border:1px solid rgba(0,255,136,0.30);border-radius:14px;padding:14px 16px;"><b style="color:#00FF88;">5. Si el código NO ha sido verificado con lector, puedes solicitar reembolso.</b> Si no asististe al festival y tu código NO fue leído ni verificado, contacta al servicio y atención al cliente de <b style="color:#FFD700;">checktiva.com</b> y solicita el reembolso. Se verificará en sistema que el código esté sin usar.</div>
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:14px 16px;"><b style="color:#fff;">6. En puerta, presenta tu documento de identidad original junto con el código.</b> El nombre y documento deben coincidir con el titular. Llega con tiempo. El ingreso se verifica solo con el lector oficial CheckTiva, no con fotos.</div>
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:14px 16px;"><b style="color:#fff;">7. Recupera tu código solo desde tu cuenta en Mis tickets.</b> Si lo pierdes, entra con tu cuenta y descárgalo de nuevo. CheckTiva nunca te pedirá tu contraseña por WhatsApp. Si alguien te ofrece códigos por fuera de checktiva.com, no son válidos.</div>
+    </div>
+    <p style="margin:14px 0 0 0;font-size:11px;color:rgba(255,255,255,0.40);text-align:center;">Al comprar en CheckTiva aceptas estas condiciones. checktiva.com • Soporte y atención al cliente en checktiva.com</p>
+  </div>
+</section>
+
+
 <script id="checktiva-sync-tiempo-real-v1">
 (function(){
   if(window.__checktivaSyncTiempoReal) return;
@@ -15123,6 +15130,593 @@ let Na=P.useMemo(()=>{var __ALL__=[].concat(I||[],__CHK_IMGS__||[],__CHK_PAST_EV
 
 
 
+
+
+<!-- Checktiva - Supabase conectado - NO toca el resto de la pagina, solo sincroniza pedidos -->
+<script id="checktiva-supabase-v1">
+(function(){
+  if(window.__checktivaSupabaseV1) return;
+  window.__checktivaSupabaseV1 = true;
+  var SUPABASE_URL = 'https://ypjwzddddlinnrmtlgki.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_4zZ67hdGWK_HspMthhtPKg_ZuwbSvCD';
+  console.log('☁️ Checktiva Supabase conectado:', SUPABASE_URL);
+
+  function _leer(k){
+    try{ var r = localStorage.getItem(k); if(!r) return []; var a = JSON.parse(r); return Array.isArray(a) ? a : []; }catch(e){ return []; }
+  }
+  function _escribir(k, v){
+    try{ localStorage.setItem(k, JSON.stringify(v || [])); }catch(e){}
+  }
+  function _snap(){
+    try{ return (localStorage.getItem('checking_orders')||'[]') + '|' + (localStorage.getItem('checktivas')||'[]'); }catch(e){ return ''; }
+  }
+  function _rango(o){
+    var s = String((o && (o.status || o.estado)) || '').toLowerCase();
+    if(s.indexOf('validado')!==-1 || s.indexOf('aprobado')!==-1 || s.indexOf('confirmado')!==-1) return 3;
+    if(s.indexOf('pendiente')!==-1) return 2;
+    if(s.indexOf('rechazado')!==-1 || s.indexOf('cancelado')!==-1) return 1;
+    return 0;
+  }
+  function _idOrden(o){ try{ return String((o && (o.id || o.orderId || o.ordenId)) || ''); }catch(e){ return ''; } }
+  function _idBoleta(b){ try{ return String((b && (b.id || b.ticketId || b.codigo)) || ''); }catch(e){ return ''; } }
+
+  function _mezclarOrdenes(local, nube){
+    var mapa={}, orden=[];
+    function poner(o){
+      var id=_idOrden(o); if(!id) return;
+      if(!mapa[id]){ mapa[id]=o; orden.push(id); return; }
+      var viejo=mapa[id];
+      if(_rango(o) > _rango(viejo)) mapa[id]=o;
+      else if(_rango(o)===_rango(viejo)){
+        var nO=(o.tickets||[]).length, nV=(viejo.tickets||[]).length;
+        if(o.qrGenerated && !viejo.qrGenerated) mapa[id]=o;
+        else if(nO>nV) mapa[id]=o;
+        else if(o.tickets && viejo.tickets){
+          // fusionar tickets dentro de la orden, el validado gana
+          try{
+            var tm={}; (viejo.tickets||[]).forEach(function(tt){ tm[String(tt.id||'')]=tt; });
+            (o.tickets||[]).forEach(function(tt){ var tid=String(tt.id||''); if(!tm[tid]) tm[tid]=tt; else { var f=Object.assign({}, tm[tid], tt); f.qrData=tt.qrData||tm[tid].qrData||f.qrData; tm[tid]=f; } });
+            var merged=Object.assign({}, viejo, o); merged.tickets=Object.keys(tm).map(function(k){ return tm[k]; }); mapa[id]=merged;
+          }catch(e){}
+        }
+      }
+    }
+    (local||[]).forEach(poner); (nube||[]).forEach(poner);
+    return orden.map(function(k){ return mapa[k]; });
+  }
+  function _mezclarBoletas(local, nube){
+    var mapa={}, orden=[];
+    function poner(b){
+      var id=_idBoleta(b) || JSON.stringify(b); if(!mapa[id]){ mapa[id]=b; orden.push(id); return; }
+      var viejo=mapa[id];
+      if(String(b.status||'').toLowerCase().indexOf('validado')!==-1) mapa[id]=b;
+      else if(b.qrData && !viejo.qrData) mapa[id]=Object.assign({}, viejo, b);
+    }
+    (local||[]).forEach(poner); (nube||[]).forEach(poner);
+    return orden.map(function(k){ return mapa[k]; });
+  }
+
+  function _headers(json){
+    var h={ 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer '+SUPABASE_KEY };
+    if(json) h['Content-Type']='application/json';
+    return h;
+  }
+  function _orderToRow(o){
+    var buyer = o.buyer || o.comprador || {};
+    var total = o.total;
+    if(total==null && o.amount!=null) total=o.amount;
+    if(total==null && o.precio!=null) total=o.precio;
+    return {
+      id: _idOrden(o),
+      status: o.status || o.estado || 'pendiente',
+      buyer_name: buyer.name || o.buyerName || o.nombre || '',
+      buyer_email: buyer.email || o.buyerEmail || o.email || o.correo || '',
+      buyer_phone: buyer.phone || buyer.telefono || o.buyerPhone || o.phone || o.telefono || '',
+      event_title: o.eventTitle || o.evento || (o.event && o.event.title) || '',
+      total: (typeof total==='number' ? total : (parseFloat(String(total||'').replace(/[^0-9.-]/g,''))||0)),
+      data: o,
+      updated_at: new Date().toISOString()
+    };
+  }
+  function _ticketToRow(b, ordenPadre){
+    var att = b.attendee || b.titular || {};
+    return {
+      id: _idBoleta(b) || ('T-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)),
+      order_id: b.orderId || b.ordenId || (ordenPadre && _idOrden(ordenPadre)) || '',
+      status: b.status || b.estado || (ordenPadre && (ordenPadre.status||ordenPadre.estado)) || 'pendiente',
+      event_title: b.eventTitle || (ordenPadre && (ordenPadre.eventTitle||ordenPadre.evento)) || '',
+      attendee_name: att.name || b.attendeeName || b.nombre || '',
+      qr_data: b.qrData || b.qr || '',
+      data: b,
+      updated_at: new Date().toISOString()
+    };
+  }
+  function _rowToOrder(row){
+    try{
+      if(row && row.data && typeof row.data==='object' && row.data.id){
+        var o = Object.assign({}, row.data);
+        if(row.status) o.status=row.status;
+        return o;
+      }
+      return { id: row.id, status: row.status||'pendiente', buyer:{ name: row.buyer_name||'', email: row.buyer_email||'', phone: row.buyer_phone||'' }, eventTitle: row.event_title||'', total: row.total||0, data: row.data||null };
+    }catch(e){ return null; }
+  }
+  function _rowToTicket(row){
+    try{
+      if(row && row.data && typeof row.data==='object' && row.data.id){
+        var b = Object.assign({}, row.data);
+        if(row.status) b.status=row.status;
+        if(row.qr_data) b.qrData=row.qr_data;
+        return b;
+      }
+      return { id: row.id, orderId: row.order_id||'', status: row.status||'pendiente', eventTitle: row.event_title||'', attendee:{ name: row.attendee_name||'' }, qrData: row.qr_data||'' };
+    }catch(e){ return null; }
+  }
+
+  // Upsert con fallback: primero fila completa, si la tabla no tiene alguna columna, reintenta solo con {id, data}
+  function _upsert(tabla, fila){
+    var url = SUPABASE_URL + '/rest/v1/' + tabla + '?on_conflict=id';
+    var h = _headers(true); h['Prefer']='resolution=merge-duplicates,return=minimal';
+    return fetch(url, { method:'POST', headers:h, body: JSON.stringify(fila) }).then(function(res){
+      if(res.ok) return true;
+      return res.text().then(function(txt){
+        // Si falta una columna, reintentar con lo minimo que seguro existe: id + data
+        if(txt && (txt.indexOf('column')!==-1 || txt.indexOf('Could not find')!==-1 || txt.indexOf('PGRST')!==-1)){
+          var minimo = { id: fila.id, data: fila.data };
+          // tickets/orders a veces usan order_id como extra, pero id+data es lo esencial
+          return fetch(url, { method:'POST', headers:h, body: JSON.stringify(minimo) }).then(function(r2){ return r2.ok; }).catch(function(){ return false; });
+        }
+        return false;
+      });
+    }).catch(function(){ return false; });
+  }
+
+  var _subiendo = false;
+  var _ultimoPushSnap = '';
+  function _subirTodo(){
+    if(_subiendo) return Promise.resolve(false);
+    try{ if(typeof navigator!=='undefined' && navigator.onLine===false) return Promise.resolve(false); }catch(e){}
+    var ordenes = _leer('checking_orders');
+    var boletas = _leer('checktivas');
+    // Tambien las boletas que vienen dentro de cada orden
+    var mapaB = {};
+    boletas.forEach(function(b){ var id=_idBoleta(b); if(id) mapaB[id]=b; });
+    ordenes.forEach(function(o){ (o.tickets||[]).forEach(function(b){ var id=_idBoleta(b); if(id && !mapaB[id]) mapaB[id]=b; }); });
+    var todasBoletas = Object.keys(mapaB).map(function(k){ return mapaB[k]; });
+    if(ordenes.length===0 && todasBoletas.length===0) return Promise.resolve(false);
+    _subiendo = true;
+    var promesas = [];
+    ordenes.forEach(function(o){ if(_idOrden(o)) promesas.push(_upsert('orders', _orderToRow(o))); });
+    // Mapear orden padre para cada boleta
+    var porOrden = {}; ordenes.forEach(function(o){ porOrden[_idOrden(o)]=o; });
+    todasBoletas.forEach(function(b){
+      var padre = porOrden[String(b.orderId||b.ordenId||'')] || null;
+      if(_idBoleta(b)) promesas.push(_upsert('tickets', _ticketToRow(b, padre)));
+    });
+    return Promise.all(promesas).then(function(){ _subiendo=false; try{ _ultimoPushSnap=_snap(); }catch(e){} return true; }).catch(function(){ _subiendo=false; return false; });
+  }
+
+  function _bajarTodo(){
+    try{ if(typeof navigator!=='undefined' && navigator.onLine===false) return Promise.resolve(false); }catch(e){}
+    var h = _headers(false);
+    var pOrdenes = fetch(SUPABASE_URL + '/rest/v1/orders?select=*&order=created_at.desc&limit=500', { headers:h }).then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; });
+    var pBoletas = fetch(SUPABASE_URL + '/rest/v1/tickets?select=*&order=created_at.desc&limit=1000', { headers:h }).then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; });
+    return Promise.all([pOrdenes, pBoletas]).then(function(res){
+      var filasO = res[0]||[], filasB = res[1]||[];
+      if(filasO.length>0){
+        var nubeO = filasO.map(_rowToOrder).filter(function(x){ return x && _idOrden(x); });
+        var localO = _leer('checking_orders');
+        var mezcladoO = _mezclarOrdenes(localO, nubeO);
+        if(JSON.stringify(mezcladoO)!==JSON.stringify(localO)) _escribir('checking_orders', mezcladoO);
+      }
+      if(filasB.length>0){
+        var nubeB = filasB.map(_rowToTicket).filter(function(x){ return x && _idBoleta(x); });
+        var localB = _leer('checktivas');
+        var mezcladoB = _mezclarBoletas(localB, nubeB);
+        if(JSON.stringify(mezcladoB)!==JSON.stringify(localB)) _escribir('checktivas', mezcladoB);
+      }
+      return true;
+    }).catch(function(){ return false; });
+  }
+
+  // Vigilar cambios locales y subir ya
+  try{ _ultimoPushSnap = _snap(); }catch(e){}
+  setInterval(function(){
+    try{
+      var ahora = _snap();
+      if(ahora!==_ultimoPushSnap){ _subirTodo(); }
+    }catch(e){}
+  }, 1500);
+  // Bajar de Supabase cada 3 segundos para que Admin vea Pendientes y el comprador vea su QR validado
+  setInterval(function(){ _bajarTodo(); }, 3000);
+  // Al volver internet, sincronizar de inmediato
+  try{
+    window.addEventListener('online', function(){ _subirTodo(); setTimeout(_bajarTodo, 800); });
+    window.addEventListener('storage', function(e){
+      if(e && (e.key==='checking_orders' || e.key==='checktivas')){ setTimeout(_subirTodo, 300); setTimeout(_bajarTodo, 600); }
+    });
+    document.addEventListener('click', function(e){
+      try{
+        var b = e.target && e.target.closest ? e.target.closest('button') : null;
+        if(!b) return;
+        var tx = String(b.textContent||'');
+        if(tx.indexOf('Comprar')!==-1 || tx.indexOf('Pagar')!==-1 || tx.indexOf('Confirmar')!==-1 || tx.indexOf('Validar')!==-1 || tx.indexOf('Aprobar')!==-1 || tx.indexOf('Registrar')!==-1){
+          setTimeout(_subirTodo, 800); setTimeout(_subirTodo, 2500); setTimeout(_bajarTodo, 1500);
+        }
+      }catch(err){}
+    }, true);
+  }catch(e){}
+  // Primera sincronizacion al abrir
+  setTimeout(function(){ _bajarTodo(); setTimeout(_subirTodo, 1200); }, 1200);
+
+  window.CheckTivaSupabase = { subir: _subirTodo, bajar: _bajarTodo, url: SUPABASE_URL };
+})();
+</script>
+
+
+<!-- FIX V4 SOLO: Info + foto del código solo en inicio, info justo debajo de la foto, fija como imagen. Nunca en otra ventana ni al oprimir ningún botón. Quita letricas de código. -->
+<script id="checktiva-fix-info-debajo-qr-solo-inicio-v4">
+(function(){
+  if(window.__checktivaFixInfoDebajoQrV4) return;
+  window.__checktivaFixInfoDebajoQrV4 = true;
+  function _esAdmin(){
+    try{
+      if(window.location && window.location.search && window.location.search.indexOf('admin=true')!==-1) return true;
+      if(document.querySelector('input[placeholder*="Usuario administrador"]')) return true;
+      var root = document.getElementById('root');
+      var txt = root ? (root.textContent||'') : (document.body.textContent||'');
+      if(txt.indexOf('Tú eres el administrador')!==-1) return true;
+      if(txt.indexOf('Super Admin')!==-1) return true;
+      if(txt.indexOf('Ver web cliente')!==-1) return true;
+      if(txt.indexOf('Modo Administrador')!==-1) return true;
+      if(txt.indexOf('Panel Administrador')!==-1) return true;
+      if(txt.indexOf('ADMIN MODE')!==-1) return true;
+      if(txt.indexOf('Usuario administrador')!==-1) return true;
+      if(txt.indexOf('Ventas \u2022 Tickets personalizados')!==-1) return true;
+      if(txt.indexOf('Crear Eventos')!==-1) return true;
+      if(txt.indexOf('Ventas / Tickets')!==-1) return true;
+      if(txt.indexOf('Ventas recientes')!==-1) return true;
+      if(txt.indexOf('Ventas hoy')!==-1) return true;
+    }catch(e){}
+    return false;
+  }
+  function _esMisTickets(){
+    try{
+      var fijos = document.querySelectorAll('div.fixed');
+      for(var i=0;i<fijos.length;i++){
+        var tx = fijos[i].textContent||'';
+        if(tx.indexOf('Mis tickets')===-1) continue;
+        if(tx.indexOf('órdenes')!==-1) return true;
+        if(tx.indexOf('Sin sesión')!==-1) return true;
+        if(tx.indexOf('Aún no tienes tickets')!==-1) return true;
+        if(tx.indexOf('Crear cuenta gratis')!==-1) return true;
+        if(tx.indexOf('TITULAR:')!==-1) return true;
+        var cls = String(fijos[i].className||'');
+        if(cls.indexOf('z-[65]')!==-1) return true;
+      }
+    }catch(e){}
+    return false;
+  }
+  function _esOtroModalOBoton(){
+    try{
+      // Checkout, QR modal, categoría, editar perfil, login: son ventanas que salen al oprimir un botón. Ahí NO va info ni foto del código.
+      var ids = ['checktiva-qr-modal','checktiva-cat-modal','checktiva-edit-modal'];
+      for(var k=0;k<ids.length;k++){
+        var el = document.getElementById(ids[k]);
+        if(el && el.style && el.style.display!=='none' && el.offsetParent!==null) return true;
+        if(el && el.textContent && el.textContent.trim().length>0 && getComputedStyle && getComputedStyle(el).display!=='none' && el.offsetParent!==null) {
+          // Solo si realmente está visible y tiene contenido de modal
+          if(ids[k]==='checktiva-qr-modal' && el.textContent.indexOf('QR')!==-1) return true;
+        }
+      }
+      var fijos = document.querySelectorAll('div.fixed');
+      for(var i=0;i<fijos.length;i++){
+        var tx = fijos[i].textContent||'';
+        if(tx.indexOf('Checkout')!==-1 && tx.indexOf('tickets')!==-1) return true;
+        if(tx.indexOf('Crear cuenta')!==-1 && tx.indexOf('Contraseña')!==-1) return true;
+      }
+    }catch(e){}
+    return false;
+  }
+  var _prevMis = false, _prevAdmin = false, _prevModal = false, _prevVista = '';
+  function _vistaAdmin(){
+    try{
+      var root = document.getElementById('root');
+      var txt = root ? (root.textContent||'') : '';
+      if(txt.indexOf('Ventas \u2022 Tickets personalizados')!==-1) return 'ventas';
+      if(txt.indexOf('Ventas recientes')!==-1) return 'dashboard';
+      if(txt.indexOf('Configuración')!==-1) return 'config';
+    }catch(e){}
+    return '';
+  }
+  function _irArriba(){
+    try{ window.scrollTo(0,0); }catch(e){}
+    try{ document.documentElement.scrollTop=0; document.body.scrollTop=0; }catch(e){}
+    try{ var sc=document.querySelector('div.flex-1.overflow-auto'); if(sc) sc.scrollTop=0; }catch(e){}
+  }
+  function _aplicar(){
+    try{
+      var dup = document.getElementById('checktiva-info-legal-inicio');
+      if(dup){
+        try{ if((dup.textContent||'').trim().length>0) dup.innerHTML=''; }catch(e){}
+        try{ dup.style.display='none'; }catch(e){}
+      }
+      var info = document.getElementById('checktiva-casillas-finales');
+      var foto = document.getElementById('checktiva-qr-entrada');
+      var admin = _esAdmin();
+      var mis = _esMisTickets();
+      var modal = _esOtroModalOBoton();
+      var ocultar = admin || mis || modal;
+      if(info){
+        if(ocultar){ try{ info.style.setProperty('display','none','important'); }catch(e){ info.style.display='none'; } }
+        else { try{ info.style.removeProperty('display'); }catch(e){ info.style.display=''; } }
+      }
+      if(foto){
+        if(ocultar){ try{ foto.style.setProperty('display','none','important'); }catch(e){ foto.style.display='none'; } }
+        else { try{ foto.style.removeProperty('display'); }catch(e){ foto.style.display=''; } }
+      }
+      try{
+        if(ocultar) document.body.classList.add('checktiva-info-oculta');
+        else document.body.classList.remove('checktiva-info-oculta');
+      }catch(e){}
+      // Al cerrar Mis Tickets / Admin / modal -> volver de una vez al inicio original, arriba
+      if((_prevMis && !mis) || (_prevAdmin && !admin) || (_prevModal && !modal)){
+        setTimeout(_irArriba, 80);
+        setTimeout(_irArriba, 350);
+      }
+      // Cambiar de Ventas a otra vista -> solo esa vista, arriba
+      if(admin){
+        var v = _vistaAdmin();
+        if(_prevVista && v && v!==_prevVista){ setTimeout(_irArriba, 120); }
+        if(v) _prevVista = v;
+      } else { _prevVista = ''; }
+      _prevMis = mis; _prevAdmin = admin; _prevModal = modal;
+    }catch(e){}
+  }
+  _aplicar();
+  setTimeout(_aplicar, 250); setTimeout(_aplicar, 700); setTimeout(_aplicar, 1500);
+  setInterval(_aplicar, 400);
+  try{
+    var o1 = new MutationObserver(function(){ _aplicar(); });
+    var f1 = document.getElementById('checktiva-casillas-finales');
+    if(f1) o1.observe(f1, {attributes:true, attributeFilter:['style']});
+    var f2 = document.getElementById('checktiva-qr-entrada');
+    if(f2) o1.observe(f2, {attributes:true, attributeFilter:['style']});
+  }catch(e){}
+  try{
+    var o2 = new MutationObserver(function(){ _aplicar(); });
+    if(document.getElementById('root')) o2.observe(document.getElementById('root'), {childList:true, subtree:true});
+    o2.observe(document.body, {childList:true, subtree:false});
+  }catch(e){}
+  try{
+    document.addEventListener('click', function(ev){
+      try{
+        var b = ev.target && ev.target.closest ? ev.target.closest('button') : null;
+        var tx = b ? String(b.textContent||'').trim() : '';
+        var esPildora = (tx==='dashboard'||tx==='eventos'||tx==='ventas'||tx==='config'||tx==='Dashboard'||tx==='Crear Eventos'||tx==='Ventas / Tickets'||tx==='Configuración');
+        if(esPildora){
+          setTimeout(_aplicar, 120); setTimeout(_aplicar, 450);
+          setTimeout(_irArriba, 200);
+        } else { setTimeout(_aplicar, 150); setTimeout(_aplicar, 500); }
+      }catch(e){}
+    }, true);
+  }catch(e){}
+})();
+</script>
+<style id="checktiva-fix-info-debajo-qr-solo-inicio-v4-style">
+  #checktiva-info-legal-inicio{display:none!important;}
+  body.checktiva-info-oculta #checktiva-casillas-finales{display:none!important;}
+  body.checktiva-info-oculta #checktiva-qr-entrada{display:none!important;}
+</style>
+
+
+<!-- VERIFICADO V5: Puente de pendientes - que ninguna pendiente se pierda. Si llega una pendiente nueva por Supabase, muestra el botón de actualizar en el puente. No toca ventanas ni info. -->
+<script id="checktiva-verificado-puente-pendientes-v5">
+(function(){
+  if(window.__checktivaPuentePendientesV5) return;
+  window.__checktivaPuentePendientesV5 = true;
+  function _leerOrdenes(){
+    try{ var a = JSON.parse(localStorage.getItem('checking_orders')||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; }
+  }
+  function _esPendiente(o){
+    try{
+      var s = String((o && (o.status||o.estado))||'').toLowerCase();
+      if(s.indexOf('pendiente')!==-1 || s.indexOf('pending')!==-1) return true;
+      if(!o.qrGenerated) return true;
+      var tks = o.tickets||[];
+      for(var i=0;i<tks.length;i++){
+        var st = String((tks[i] && (tks[i].status||tks[i].estado))||'').toLowerCase();
+        if(st.indexOf('pendiente')!==-1 || st.indexOf('pending')!==-1) return true;
+        if(!tks[i].qrGenerated) return true;
+      }
+    }catch(e){}
+    return false;
+  }
+  function _mostrarBotonPuente(){
+    try{
+      if(document.getElementById('checktiva-sync-actualizar-btn')) return;
+      var b = document.createElement('button');
+      b.id = 'checktiva-sync-actualizar-btn';
+      b.type = 'button';
+      b.textContent = '↻ Hay cuentas / validaciones nuevas — Toca para actualizar';
+      b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:999999;background:#FFD700;color:#000;border:none;border-radius:999px;padding:14px 16px;font-weight:900;font-size:13px;box-shadow:0 10px 40px rgba(0,0,0,0.6);cursor:pointer;';
+      b.addEventListener('click', function(){ try{ location.reload(); }catch(e){} });
+      document.body.appendChild(b);
+    }catch(e){}
+  }
+  var _prevPendientes = '';
+  function _chequear(){
+    try{
+      var ordenes = _leerOrdenes();
+      var pendientes = ordenes.filter(_esPendiente);
+      var ids = pendientes.map(function(o){ return String(o.id||o.orderId||''); }).sort().join(',');
+      // Si llegó una pendiente nueva que antes no estaba, avisar en el puente
+      if(_prevPendientes && ids!==_prevPendientes){
+        var prevSet = {}; _prevPendientes.split(',').forEach(function(x){ if(x) prevSet[x]=true; });
+        var hayNueva = false;
+        pendientes.forEach(function(o){ var id=String(o.id||o.orderId||''); if(id && !prevSet[id]) hayNueva=true; });
+        if(hayNueva){
+          _mostrarBotonPuente();
+          try{ console.log('Puente: pendiente nueva llegó, total pendientes', pendientes.length); }catch(e){}
+        }
+      }
+      if(ids) _prevPendientes = ids;
+    }catch(e){}
+  }
+  // Primera lectura sin avisar (para no mostrar botón al abrir si ya había pendientes viejas)
+  try{ var ini = _leerOrdenes().filter(_esPendiente).map(function(o){ return String(o.id||o.orderId||''); }).sort().join(','); _prevPendientes = ini; }catch(e){}
+  setInterval(_chequear, 2000);
+  setTimeout(_chequear, 3000);
+  // Si Supabase baja algo nuevo, chequear de inmediato
+  try{
+    var _origBajar = window.CheckTivaSupabase && window.CheckTivaSupabase.bajar;
+    document.addEventListener('click', function(e){
+      try{
+        var b = e.target && e.target.closest ? e.target.closest('button') : null;
+        if(!b) return;
+        var tx = String(b.textContent||'');
+        if(tx.indexOf('Validar')!==-1 || tx.indexOf('Confirmar')!==-1 || tx.indexOf('PENDIENTE')!==-1){
+          setTimeout(_chequear, 1000); setTimeout(_chequear, 3000);
+        }
+      }catch(err){}
+    }, true);
+  }catch(e){}
+  console.log('Puente pendientes V5 activo: ninguna pendiente se pierde, avisa al admin');
+})();
+</script>
+
+
+<!-- FIX V6 FINAL: Cerrar Mis Tickets con la X vuelve de una vez al inicio normal, sin bloquear y sin fotos coladas. No toca nada más. -->
+<script id="checktiva-cerrar-mis-tickets-a-inicio-v6">
+(function(){
+  if(window.__checktivaCerrarMisV6) return;
+  window.__checktivaCerrarMisV6 = true;
+  function _esMisAbierto(){
+    try{
+      var fijos = document.querySelectorAll('div.fixed');
+      for(var i=0;i<fijos.length;i++){
+        var tx = fijos[i].textContent||'';
+        if(tx.indexOf('Mis tickets')!==-1 && (tx.indexOf('órdenes')!==-1 || tx.indexOf('Sin sesión')!==-1 || tx.indexOf('Aún no tienes tickets')!==-1 || tx.indexOf('TITULAR:')!==-1)){
+          var cls = String(fijos[i].className||'');
+          if(cls.indexOf('z-[65]')!==-1 || cls.indexOf('fixed')!==-1) return fijos[i];
+        }
+      }
+    }catch(e){}
+    return null;
+  }
+  function _desbloquear(){
+    try{ document.body.style.overflow=''; document.body.style.position=''; document.body.style.height=''; document.body.style.touchAction=''; }catch(e){}
+    try{ document.documentElement.style.overflow=''; document.documentElement.style.position=''; document.documentElement.style.height=''; }catch(e){}
+    try{ document.body.classList.remove('overflow-hidden'); }catch(e){}
+  }
+  function _irInicioNormal(){
+    try{ window.scrollTo(0,0); }catch(e){}
+    try{ document.documentElement.scrollTop=0; document.body.scrollTop=0; }catch(e){}
+    try{ var r=document.getElementById('root'); if(r) r.scrollTop=0; }catch(e){}
+    try{ var sc=document.querySelector('div.flex-1.overflow-auto'); if(sc) sc.scrollTop=0; }catch(e){}
+    _desbloquear();
+  }
+  function _forzarCierreSiQuedoAtorado(){
+    try{
+      var drawer = _esMisAbierto();
+      if(!drawer) return;
+      // Si React no lo cerró en 400ms, forzarlo: ocultar el drawer y su fondo oscuro, sin tocar el inicio
+      try{ drawer.style.setProperty('display','none','important'); }catch(e){ drawer.style.display='none'; }
+      try{ drawer.style.pointerEvents='none'; }catch(e){}
+      // Quitar también cualquier fondo oscuro que haya quedado bloqueando la página
+      try{
+        var fondos = document.querySelectorAll('div.absolute.inset-0.bg-black\/70, div.absolute.inset-0.bg-black');
+        for(var i=0;i<fondos.length;i++){
+          try{
+            var padre = fondos[i].parentElement;
+            if(padre && padre.textContent && padre.textContent.indexOf('Mis tickets')!==-1){
+              fondos[i].style.display='none'; fondos[i].style.pointerEvents='none';
+            }
+          }catch(e){}
+        }
+      }catch(e){}
+      _irInicioNormal();
+    }catch(e){}
+  }
+  // 1) Clic en la X de Mis Tickets o en el fondo oscuro -> volver de una vez al inicio
+  try{
+    document.addEventListener('click', function(ev){
+      try{
+        var t = ev.target;
+        if(!t || !t.closest) return;
+        var drawerAntes = _esMisAbierto();
+        if(!drawerAntes) return;
+        // ¿Es la X? Es el botón dentro del header de Mis Tickets (h-9 w-9 bg-white/10) o el fondo oscuro
+        var btn = t.closest('button');
+        var esX = false;
+        if(btn){
+          try{
+            var cls = String(btn.className||'');
+            var padre = btn.parentElement;
+            var txtPadre = padre ? (padre.textContent||'') : '';
+            // X está en el header donde dice Mis tickets, es un botón redondo 9x9
+            if(cls.indexOf('h-9')!==-1 && cls.indexOf('w-9')!==-1 && txtPadre.indexOf('Mis tickets')!==-1) esX = true;
+            // También: cualquier botón dentro del drawer que esté en el header (su abuelo tiene Mis tickets)
+            if(!esX){
+              var p2 = btn.parentElement && btn.parentElement.parentElement ? btn.parentElement.parentElement : null;
+              if(p2 && (p2.textContent||'').indexOf('Mis tickets')!==-1 && cls.indexOf('bg-white/10')!==-1) esX = true;
+            }
+          }catch(e){}
+        }
+        var esFondo = false;
+        try{
+          var clsT = String((t.className||''));
+          if(clsT.indexOf('bg-black/70')!==-1 || clsT.indexOf('bg-black')!==-1){
+            var par = t.parentElement;
+            if(par && (par.textContent||'').indexOf('Mis tickets')!==-1) esFondo = true;
+          }
+        }catch(e){}
+        if(!esX && !esFondo) return;
+        // Dejar que React cierre, pero asegurar el regreso al inicio aunque React se trabe
+        setTimeout(_irInicioNormal, 80);
+        setTimeout(_irInicioNormal, 250);
+        setTimeout(_irInicioNormal, 500);
+        setTimeout(_forzarCierreSiQuedoAtorado, 450);
+        setTimeout(_forzarCierreSiQuedoAtorado, 900);
+        setTimeout(function(){ _desbloquear(); _irInicioNormal(); }, 1200);
+      }catch(e){}
+    }, true);
+  }catch(e){}
+  // 2) Si el drawer se quita del DOM (React lo cerró), volver arriba al inicio normal
+  try{
+    var _prev = !!_esMisAbierto();
+    var obs = new MutationObserver(function(){
+      try{
+        var ahora = !!_esMisAbierto();
+        if(_prev && !ahora){
+          _irInicioNormal();
+          setTimeout(_irInicioNormal, 150);
+          setTimeout(_desbloquear, 200);
+        }
+        _prev = ahora;
+      }catch(e){}
+    });
+    obs.observe(document.body, {childList:true, subtree:true});
+  }catch(e){}
+  // 3) Cada tanto, si no hay Mis Tickets abierto, asegurar que la página no quede bloqueada
+  setInterval(function(){
+    try{
+      if(!_esMisAbierto()){
+        // Solo desbloquear si no hay ningún modal fijo abierto (Checkout, QR, etc.)
+        var hayModal = false;
+        try{
+          var f = document.querySelectorAll('div.fixed');
+          for(var i=0;i<f.length;i++){
+            var tx = f[i].textContent||'';
+            if(tx.indexOf('Checkout')!==-1 || tx.indexOf('Mis tickets')!==-1) { hayModal=true; break; }
+          }
+        }catch(e){}
+        if(!hayModal) _desbloquear();
+      }
+    }catch(e){}
+  }, 1500);
+})();
+</script>
 
 </body>
 </html>
